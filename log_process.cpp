@@ -18,6 +18,17 @@ class Customers {
     // for each entry add the subnet to one of two Subnets (ipv4 or ipv6) and link it to
     // existing or newly created customer
     int load(istream& is);
+
+private:
+
+    /// @brief Try to insert new pair.
+    /// Add subnet (check for duplicates and overlapping), find or create a customer and link a subnet entry to it
+    /// [Required] Raise error on collision: (id, ip) pair conflicts with existing one.
+    /// [Optional] Log warning on duplicates (exact or partial). that is a subnet belongs
+    /// to a customer which already owns the superset or subset. Exact duplicates shall be ignored,
+    /// subrange is OK as it does not affect the result, but may be considered as "dirty" registry so that
+    /// some grooming may be desired. This is out of scope for now.
+    void insert(CustomerId customer, IpRange ipRange);
 };
 
 // Use struct to say that there is no invariants enforced
