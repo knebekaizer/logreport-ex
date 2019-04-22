@@ -3,4 +3,11 @@ project(iplog_test)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(iplog_test main.cpp)
+include_directories( . )
+
+set(SOURCE_FILES
+        main.cpp
+        net/radix.c
+        cust_db.cpp cust_db.h report.cpp report.h)
+
+add_executable(iplog_test ${SOURCE_FILES})

@@ -1,10 +1,29 @@
 /// @file
 
+#include "report.h"
+#include "cust_db.h"
+
 #include <iostream>
 
 using namespace std;
 
 class Parser;
+
+class Report {
+public:
+    int accumulate(istream& is);
+    int output(ostream& os) const;
+private:
+    SubnetsData db;
+};
+
+// sugar
+ostream& operator<<(ostream& os, const Report& r)
+{
+    r.output(os);
+    // @TODO Error checking?
+    return os;
+}
 
 // container that maps ip range to byte counter (accumulator)
 // Can traverse (seek for the most specific subnet including particular ip)
@@ -35,19 +54,20 @@ private:
 
 // Use struct to say that there is no invariants enforced
 struct LogEntry {
-    typedef uint64_t CountT;
+    using   count_t = uint64_t;
     IpKey   ip;
-    CountT  bytes;
+    count_t bytes;
 };
 
-int log_read(istream& is)
+
+int Report::accumulate(istream& is)
 {
     LogEntry line;
 
 
     // use getline to validate input format
     while (is >> line) {
-        registry.findByIp(line.ip).add(bytes); // never fail
+        db.findByIp(line.ip).add(line.bytes); // never fail
     }
 
     // check eof and failbit. Stop ib case of failbit but not eof, as it means the stream is heavily misformatted
