@@ -7,7 +7,8 @@ include_directories( . )
 
 set(SOURCE_FILES
         main.cpp
-        net/radix.c
-        cust_db.cpp cust_db.h report.cpp report.h)
+    #    net/radix.c
+    #    cust_db.cpp cust_db.h report.cpp report.h subnets.cpp subnets.h
+)
 
 add_executable(iplog_test ${SOURCE_FILES})

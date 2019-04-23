@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-import random
+import random, sys
+
+import ipaddress
+from ipaddress import IPv4Address, IPv6Address, ip_network
 
 N_CUSTOMERS = 20
 N_SUBNETS = 2 * N_CUSTOMERS
@@ -10,6 +13,7 @@ N_SUBNETS = 2 * N_CUSTOMERS
 words = open('nouns').read().split()
 customers_set = set();
 
+# Create set then convert to list, to have a sequence with no dups
 for k in range(N_CUSTOMERS):
     n = random.randrange(1, 3)
     w = "-".join([random.choice(words) for i in range(n)])
@@ -18,41 +22,28 @@ for k in range(N_CUSTOMERS):
     while n > 1 and w in customers_set:
         w = w + "_" + str(random.randrange(0, 65536))
     customers_set.add(w)
-# print(customers_set)
 
-def random_v4():
-    i = random.randrange(1, 256)
-    if i == 10: i += 1
-    i = (i << 8) + random.randrange(0, 256)
-    if i == (192 << 8 + 168): i += 1
-    i = (i << 8) + random.randrange(0, 256)
-    i = (i << 8) + random.randrange(0, 256)
-    return i
+customers = list(customers_set)
+# print(customers)
 
-def str_v4(ip):
-    return ".".join(str((ip >> b) & 255) for b in [24,16,8,0])
+def rand_v4():
+    while True:
+        ip = IPv4Address(random.getrandbits(32))
+        if ip.is_global:
+            return
 
-MAX_I4 = 0xffffffff
-def random_sub():
-    bits = random.randrange(16, 33)     # ???
-    mask = (MAX_I4 << (32 - bits)) & MAX_I4
-    ip = random_v4() & mask
-#    print("%s/%d" % (str_v4(ip), bits))
-    return (ip, bits)
+def rand_network():
+    while True:
+        a = random.getrandbits(32)
+        m = random.randrange(8, 33)     # ???
+        ip = ip_network((a, m), strict=False)
+        if ip.is_global:
+            return ip
 
 for k in range(N_SUBNETS):
-    random_sub()
+    c = random.choice(customers)
+    ip = rand_network()
+    print("%s %s" % (c, ip))
 
-import ipaddress
-from ipaddress import IPv4Address, IPv6Address
-for k in range(1000):
-    ip = IPv4Address(random.getrandbits(32))
-#   if ip.is_reserved: print(ip, "reserved")
-    if not ip.is_global:
-        print(ip, "not global")
+sys.exit(0)
 
-for k in range(1000):
-    ip = IPv6Address(random.getrandbits(128))
-    #   if ip.is_reserved: print(ip, "reserved")
-    if not ip.is_global:
-        print(ip, "not global")
