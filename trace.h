@@ -77,11 +77,11 @@ enum LOG_LEVEL {trace, debug, info, warn, error, fatal};
 #endif
 extern LOG_LEVEL::LOG_LEVEL gLogLevel;
 
-#define log_trace   if (DEF_LOG_LEVEL <= LOG_LEVEL::trace) tr_stream
-#define log_debug   if (DEF_LOG_LEVEL <= LOG_LEVEL::debug) tr_stream
-#define log_info    if (DEF_LOG_LEVEL <= LOG_LEVEL::info) tr_stream
-#define log_warn    if (DEF_LOG_LEVEL <= LOG_LEVEL::warn) tr_stream << "[WARN] "
-#define log_error   if (DEF_LOG_LEVEL <= LOG_LEVEL::error) err_stream
+#define log_trace   (DEF_LOG_LEVEL <= LOG_LEVEL::trace) && tr_stream
+#define log_debug   (DEF_LOG_LEVEL <= LOG_LEVEL::debug) && tr_stream
+#define log_info    (DEF_LOG_LEVEL <= LOG_LEVEL::info) && tr_stream
+#define log_warn    (DEF_LOG_LEVEL <= LOG_LEVEL::warn) && tr_stream << "[WARN] "
+#define log_error   (DEF_LOG_LEVEL <= LOG_LEVEL::error) && err_stream
 #define log_fatal   err_stream << "[FATAL] "
 
 

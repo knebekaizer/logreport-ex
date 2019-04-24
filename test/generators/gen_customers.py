@@ -5,7 +5,7 @@ import random, sys
 import ipaddress
 from ipaddress import IPv4Address, IPv6Address, ip_network
 
-N_CUSTOMERS = 20
+N_CUSTOMERS = 100000
 N_SUBNETS = 2 * N_CUSTOMERS
 
 # generate customers set
@@ -32,12 +32,16 @@ def rand_v4():
         if ip.is_global:
             return
 
+# use set to avoid duplicates
+subnets = set()
+
 def rand_network():
     while True:
         a = random.getrandbits(32)
         m = random.randrange(8, 33)     # ???
         ip = ip_network((a, m), strict=False)
-        if ip.is_global:
+        if ip.is_global and ip not in subnets:
+            subnets.add(ip)
             return ip
 
 for k in range(N_SUBNETS):
