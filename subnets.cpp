@@ -80,11 +80,6 @@ void Tree::insert(Node* node)
     Node* current = this;
     auto bound = current->subs.end();
 TraceX(*node);
-//log_trace << "Tree:\n" << (*this);
-//int k = 0; for (auto const& x : current->subs) {
-//    Node::less less;
-//    log_trace << "current->subs["<<k<<"] = " << *x << (less(x,node) ? " less" : " more");
-//}
 
 int level = 0;
     while (!current->subs.empty()) {
@@ -93,6 +88,79 @@ TraceX(level);
 TraceX(1);
 TraceX(*current);
 TraceX(current->subs.size());
+        // for current level of nesting
+        bound = current->subs.lower_bound(node);
+        if (bound == current->subs.begin()) {
+            TraceX(2);
+            // not found in children, insert into the current level
+            break;
+        } else if (bound != current->subs.end() && (*bound)->ip->iaddr == node->ip->iaddr) {
+            TraceX(3);
+            // exact match or subnet?
+            if ((*bound)->ip->bits == node->ip->bits) {
+                // Check for exact match when building. Ignore (warn) if owner is the same, otherwise raise error
+                // Recurse deeper when accumulating. Do nothing here, it's implemented below
+                log_error << "IP4Network duplicate: " << **bound;
+                return; // skip
+            } else if ((*bound)->ip->bits < node->ip->bits) {
+                assert((*bound)->ip->supernetOf(*node->ip));
+                current = *bound;
+                continue;
+            } else {
+                assert(node->ip->supernetOf(*(*bound)->ip));
+                break;
+            }
+        } else {
+            TraceX(5);
+            // one step back over sorted siblings
+            assert(bound != current->subs.begin());
+            auto prev = std::prev(bound); // bound; --prev; //
+            if ((*prev)->ip->supernetOf(*node->ip)) {
+                // continue recursion
+                current = *prev;
+                bound = current->subs.end(); // iterator shall be inside of current set. Bad style...
+                continue;
+            } else {
+                break;
+            }
+        }
+    }
+
+    auto it = bound;
+    for ( ; it != current->subs.end() && node->ip->supernetOf(*(*it)->ip); ++it) {
+        // move subs from the current to the new one
+        node->subs.insert(*it);
+    }
+    current->subs.erase(bound, it);
+    current->subs.insert(node); // use bound as a hint
+    log_trace << "Tree:\n" << (*this);
+}
+
+
+/*
+// tree
+void Tree::add(IP4Network* node, uint64_t incr)
+{
+    // Root owns all:
+    // When building, the root is just a list of top-level nets
+    // When accumelating, root.add means "unknown"
+
+    Node* current = this;
+    auto bound = current->subs.end();
+    TraceX(*node);
+//log_trace << "Tree:\n" << (*this);
+//int k = 0; for (auto const& x : current->subs) {
+//    Node::less less;
+//    log_trace << "current->subs["<<k<<"] = " << *x << (less(x,node) ? " less" : " more");
+//}
+
+    int level = 0;
+    while (!current->subs.empty()) {
+        TraceX(level);
+        ++level;
+        TraceX(1);
+        TraceX(*current);
+        TraceX(current->subs.size());
         // for current level of nesting
         Node::less comparator;
         bound = std::lower_bound(current->subs.begin(), current->subs.end(), node, comparator);
@@ -132,23 +200,16 @@ TraceX(current->subs.size());
         }
     }
 
-    TraceX(7);
-    TraceX(*current);
     auto it = bound;
     for ( ; it != current->subs.end() && node->ip->supernetOf(*(*it)->ip); ++it) {
         // move subs from the current to the new one
-        TraceX(71);
         node->subs.insert(*it);
-        TraceX(72);
-//        current->subs.erase(it);
-//        TraceX(73);
     }
     current->subs.erase(bound, it);
-
-    TraceX(8);
     current->subs.insert(node); // use bound as a hint
     log_trace << "Tree:\n" << (*this);
 }
+*/
 
 #ifdef UT_CATCH
 #include "catch.hpp"
