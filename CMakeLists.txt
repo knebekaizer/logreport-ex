@@ -19,6 +19,5 @@ add_executable(iplog ${SOURCE_FILES})
 add_executable(iplog_ut ${SOURCE_FILES})
 
 target_compile_definitions(iplog_ut PRIVATE
-        CATCH_CONFIG_MAIN
         UT_CATCH
 )

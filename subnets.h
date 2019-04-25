@@ -26,17 +26,24 @@ private:
     MaskT   mask_ = ~0;
 };
 
-
-struct IP4Network {
-    IP4Network() {}
-    IP4Network(const std::string& addr, int bits);
-
-    bool supernetOf(const IP4Network& IP4Network) const;
+struct IP4Address {
+    IP4Address() {}
+    IP4Address(const std::string& addr);
 
     uint32_t    iaddr = 0; // host endian
+};
+
+struct IP4Network : public IP4Address{
+    IP4Network() {}
+    IP4Network(const std::string& addr, int b);
+
+    bool supernetOf(const IP4Address& IP4Network) const;
+    bool supernetOf(const IP4Network& IP4Network) const;
+
+//    uint32_t    iaddr = 0; // host endian
     uint8_t     bits = 0;
 //private:
-    in_addr_t   addr = 0;
+//    in_addr_t   addr = 0;
 };
 
 inline
@@ -52,15 +59,18 @@ std::ostream& operator<<(std::ostream& os, const IP4Network& ip)
 struct IPData : public IP4Network {
     IPData() : IP4Network() {}
     IPData(const std::string& ip, int b) : IP4Network(ip, b) {}
+
+    void incr(uint64_t x) { data_ += x; }
     uint64_t data_ = 0;
 };
 
 
-class Node {
+class Node : public IPData {
 public:
-    Node(IPData* payload) : ip(payload) {}
+    Node() : IPData() {}
+    Node(uint32_t addr) { iaddr = addr; bits = 32; }
+    Node(const std::string& ip, int b) : IPData(ip, b) {}
     friend class Tree;
-    IPData * ip; ///< no ownership!
 
 //private:
 //  CountT  data_ = 0;
@@ -72,8 +82,9 @@ public:
 
 class Tree : public Node {
 public:
-    Tree() : Node(new IPData()) {} // @todo fix leak
+    Tree() : Node() {} // @todo fix leak
     void insert(Node* node);
+    Node* lookup(const IP4Address&);
 };
 
 std::ostream& operator<<(std::ostream& os, const Tree& tree);

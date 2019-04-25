@@ -12,25 +12,31 @@ using namespace std;
 
 struct RegElem {
     RegElem(const string& name, const string& addr, int bits)
-        : id(name), netw(std::make_unique<IPData>(addr, bits)) {}
+        : id(name), node(std::make_unique<Node>(addr, bits)) {}
 
     string id;
-    std::unique_ptr<IPData> netw;
+    std::unique_ptr<Node> node;
 };
 
 #include <vector>
-using IPRegistry = std::vector<RegElem>;
 
-// Load registry
-int load(istream& is, IPRegistry& ipr)
+class IPRegistry : public std::vector<RegElem>
+{
+public:
+    int load(istream& is);
+    istream& processData(istream& is);
+    ostream& report(ostream& os) const;
+    Tree tree;
+};
+
+
+int IPRegistry::load(istream& is)
 {
     string id; // customer id
     string netw; // text repr of the network
     int bits;
     // use getline to validate input format
-    int lines = 0;
     while (is >> id >> netw) {
-        ++lines;
         bits = 32;
         try {
             auto pos = netw.find('/');
@@ -40,46 +46,100 @@ int load(istream& is, IPRegistry& ipr)
                     throw std::invalid_argument(netw);
                 netw.erase(pos);
             }
-            ipr.push_back({id, netw, bits});
-        //  log_trace << lines << ": " << netw << "|" << bits;
+            push_back({id, netw, bits});
+            //  log_trace << lines << ": " << netw << "|" << bits;
         }
         catch (std::exception& e) {
-            log_error << "Bad format: line " << lines << " " << e.what();
+            log_error << "Bad format: line " << size() << " " << e.what();
             is.setstate(std::ios_base::badbit);
-        //    break;
+            //    break;
         }
 
     }
-    log_info << "Done " << lines << " lines";
+    std::sort(begin(), end(), [](const RegElem& x, const RegElem& y){ return x.id < y.id; } );
+    log_info << "Done " << size() << " lines";
     // check eof and failbit. Stop ib case of failbit but not eof, as it means the stream is heavily misformatted
-    return lines;
+    if (is.bad()) return 1;
+
+    for (auto& x : *this) {
+        tree.insert(x.node.get());
+    }
+
+    log_trace << "Tree:\n" << tree;
+
+    return 0;
 }
 
-int init()
+istream& IPRegistry::processData(istream& is)
+{
+    string ip;
+    uint64_t bytes;
+    uint64_t line = 1;
+    while (is >> ip >> bytes) {
+        Node* n = tree.lookup(ip);
+        n->incr(bytes);
+        ++line;
+    }
+    if (!is.eof()) {
+        log_error << "Bad format: line " << line;
+        throw std::runtime_error("Bad format");
+    }
+    return is;
+}
+
+ostream& IPRegistry::report(ostream& os) const
+{
+    uint64_t sum = 0;
+    string last;
+    for (auto& x : *this) {
+        if (last != x.id) {
+            if (!last.empty() && sum)
+                os << last << "\t" << sum << endl;
+            sum = 0;
+            last = x.id;
+        }
+        sum += x.node->data_;
+    }
+    if (!last.empty() && sum)
+        os << last << "\t" << sum << endl;
+
+    os << "Unknown" << "\t" << tree.data_ << endl;
+
+    return os;
+}
+
+
+int init(IPRegistry& ipr)
 {
     try {
-        ifstream is;
-        is.open("test/c5.log");
+        ifstream is("test/c5.txt");
         if (!is) {
             log_error << "Open error";
             return -1;
         }
 
-        IPRegistry ipr;
-        load(is, ipr);
-        if (is.bad())
+        auto rc = ipr.load(is);
+        if (rc)
             return 1;
 
-        Tree tree;
-        vector<Node> nodes;
+//        IP4Address ip("239.254.0.0");
+//        Node* p1 = ipr.tree.lookup(ip);
+//        TraceX(*p1);
+//        Node* p2 = ipr.tree.lookup(IP4Address("240.0.0.1"));
+//        TraceX(*p2);
 
-        for (auto& x : ipr) {
-        //  log_trace << x.id << '\t' << *x.netw;
-            Node* node = new Node(x.netw.get()); /// @todo leak
-            tree.insert(node);
-        }
+        ifstream ipdata("test/iplog.dat");
+        ipr.processData(ipdata);
 
-        log_trace << "Tree:\n" << tree;
+    //  hook-professor 132.225.143.20/30
+//        Node* n1 = ipr.tree.lookup(IP4Address("132.225.143.21"));
+//        TraceX(*n1);
+//        n1->incr(42);
+//        auto f = find_if(ipr.begin(), ipr.end(), [](auto& x) { return x.id == string("hook-professor"); } );
+//        if (f != ipr.end())\
+//            TraceX(f->node->data_);
+//        else
+//            log_trace << "Not found";
 
         return 0;
     }
@@ -92,10 +152,15 @@ int init()
     return -1;
 }
 
-#ifndef CATCH_CONFIG_MAIN
+#ifndef UT_CATCH
 int main()
 {
-    auto rc = init();
+    IPRegistry ipr;
+    auto rc = init(ipr);
+
+    ofstream os("report_5.txt");
+    ipr.report(os);
+
 
 //    char s[] = "192.168.0.5";
 //    in_addr   addr;
@@ -107,3 +172,20 @@ int main()
     return rc;
 }
 #endif // CATCH_CONFIG_MAIN
+
+
+#ifdef UT_CATCH
+#include "catch.hpp"
+
+
+TEST_CASE( "IP4Address.lookup", "[IP4Address]")
+{
+    Tree tree;
+    init(tree);
+    IP4Address ip("239.254.0.0");
+    Node* p1 = tree.lookup(ip);
+    auto correct = ( (p1->iaddr == (239<<24) + (254<<16)) && p1->bits == 15);
+    REQUIRE( correct );
+}
+
+#endif // UT_CATCH
