@@ -8,6 +8,7 @@
 
 #include "trace.h"
 
+
 //static
 //std::ostream& operator<<(std::ostream& os, const Node& node) {
 //    return os << *node.ip;
@@ -203,6 +204,119 @@ Node* Tree::lookup(const IP4Address& ip)
     }
 
     return current;
+}
+
+struct IP4N {
+    uint32_t a;
+    uint8_t bits;
+};
+
+class RNode : public IP4N
+{
+public:
+    uint32_t mask;
+    RNode* left;
+    RNode* right;
+    uint8_t plen;
+};
+
+
+class Radix
+{
+    RNode* lookup(const IP4Network& ip) const;
+    void insert(const IP4Network& ip);
+};
+
+RNode*
+Radix::lookup(const IP4Network& ip) const
+{
+    RNode* c = root;
+    while (c->zero) { // has child?
+        if (c->zero->supernetOf(ip)) {
+            c = c->zero;
+        } else if (c->one->supernetOf(ip)) {
+            c = c->one;
+        } else {
+            break;
+        }
+    }
+}
+
+uint32_t mask(uint8_t bits)
+{
+    return ~0u << (32 - bits);
+}
+
+
+void
+Radix::insert(const IP4N& i)
+{
+    RNode* p = lookup(ip); // parent
+
+    // ip.bits > c.bits
+    // if no children then add ip as  child
+    // if one child has common prefix then split it
+    // otherwise add ip as a child
+
+    int bits; // length of network mask = number of network bits
+    int plen; // length of path to the current node (ibn bits); plen <= nbits
+
+    if (p->left) {
+        auto c = p->left;
+        auto x = (c.a ^ i.a) & ~mask(p->plen); // clear first p->plen bits
+        if (x) { // C and I have common prefix; split them
+            if (i.bits < c.plen && (x & mask(i.bits) == 0)) {
+                // insert i as super of c
+            } else if (c.plen < i.bits && (x & mask(c.plen) == 0)) {
+                // c is super of i; recurse further
+            }
+        }
+    }
+
+/*
+        if p->left and i have common prefix
+            split left:
+                c = left;
+                x = c ^ i
+                for (n = p.plen+1; n<i.nbits && n < c->plen) {}
+                    if bit(x, n)  break // n-th bit differ
+                }
+                // now n points next to common bits
+                if n == c->plen
+                    then recurse further
+                if n == i->nbits // i is super of c
+                    then make i a new child of P and move c to child of i
+                else if n < i->nbits
+                    then split:
+                        create nc as new_child(i, n)
+                        move c to child of nc
+                        set i as second child of nc
+
+        else if p->right {
+            assert p->right and i have common prefix;
+            split right;
+        } else {
+            p->right = i;
+        }
+
+
+    } else {
+        p->left = i;
+    }
+*/
+    auto pm = p->mask;
+    // len is length of parent mask
+
+    int next = len + 1;
+
+    auto i = ip.iaddr;
+
+    diff = (i ^ other) & ~pm;
+    while (bitset(diff, len)) {
+        ++len;
+    }
+    uint32_t tail = i & ~pm;
+
 }
 
 
