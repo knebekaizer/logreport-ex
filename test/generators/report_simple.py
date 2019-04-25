@@ -38,7 +38,7 @@ for line in open("../iplog.dat"):
     else:
         unknown += bytes
     lines += 1
-    print("lines: " + str(lines))
+#    print("lines: " + str(lines))
 
 
 for p in sorted(report):
