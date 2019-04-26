@@ -30,14 +30,14 @@ inline unsigned int bit(IP::AddrT x, unsigned int bit)
 	return 1 & (x >> (sz - bit));
 }
 
+#undef DEF_LOG_LEVEL
+#define DEF_LOG_LEVEL (LOG_LEVEL::info)
 
-static trie::Node* Root;
 //IP x
 //insert x
 void Radix::insert(const IP& x)
 {
     auto c = &root;  // current node, start from root
-Root = &root;
     Node* parent = nullptr;
     while (1) {
 //outline(&root);
@@ -138,7 +138,7 @@ Node* Radix::lookup(const IP &x)
 }
 
 
-#ifndef NDEBUG
+#ifdef IPLOG_DEBUG
 void Radix::checkInvariants(const IP& ip)
 {
 	static std::vector<IP> all;;
@@ -155,8 +155,6 @@ void Radix::checkInvariants(const IP& ip)
 	    assert(f->addr() == x.addr && f->size() == x.size());
 	}
 }
-
-
 #endif
 
 } // namespace trie
@@ -169,7 +167,6 @@ Trace2(*this, *node);
     unsigned int k = bit(node->addr(), node->begin);
     assert(k <= 1);
     subs[k] = node; // odd or even
-//outline(Root);
     return k;
 }
 

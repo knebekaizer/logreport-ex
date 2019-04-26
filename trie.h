@@ -69,8 +69,10 @@ public:
 
     Node root;
 
-#ifndef NDEBUG
+#ifdef IPLOG_DEBUG
 	void checkInvariants(const IP& n);
+#else
+#define checkInvariants(x)
 #endif
 };
 

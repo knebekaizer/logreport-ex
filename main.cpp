@@ -69,10 +69,10 @@ int IPRegistry::load(istream& is)
 
     trie::Radix trie;
     for (auto& x : *this) {
-        TraceX(*x.node.get());
+//      TraceX(*x.node.get());
         trie.insert(IP(*x.node.get()));
     }
-    outline(&trie.root);
+//    outline(&trie.root);
     walk(&trie.root);
 
     return 0;
@@ -120,7 +120,7 @@ ostream& IPRegistry::report(ostream& os) const
 int init(IPRegistry& ipr)
 {
     try {
-        ifstream is("test/c3.txt");
+        ifstream is("test/c5.txt");
         if (!is) {
             log_error << "Open error";
             return -1;
