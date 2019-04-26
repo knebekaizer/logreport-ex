@@ -40,7 +40,7 @@ void Radix::insert(const IP& x)
 Root = &root;
     Node* parent = nullptr;
     while (1) {
-outline(&root);
+//outline(&root);
         assert(c != nullptr); // better than while(c) as it makes assumption clearer
         auto prefix = std::min(c->end, std::min(x.size(), leftmostbit(c->addr() ^ x.addr)));  // in [ c.begin, min(c.end, x.size) )
 Trace2(*c, x);
@@ -68,22 +68,19 @@ Trace2(1, *n);
 
         // else insert after
         if (prefix < c->end) {
-        	if (c != &root) {
+ //       	if (c != &root) {
 		        //  c = split(c, prefix);
-		        auto n0 = new Node(c->ip, c->begin, prefix);  //  = node[0:pos] Make shallow copy and truncate
-		        c->begin = prefix;             // = node[pos:] May remove unused bytes from IP but should i care?
-		        n0->setChild(c);           // place tail into chain
-		        if (parent != nullptr) {
-			        parent->setChild(n0);          // replace node by n0 in the parent to fix chain
-		        } else {
-			        assert(c == &root);
-		        }
-		        c = n0;                       // and set current to the new one
+		        auto n0 = new Node(*c);  //  = node[0:pos] Make shallow copy and truncate
+		        c->end = prefix;             // = node[pos:] May remove unused bytes from IP but should i care?
+		        n0->begin = prefix;
+		        c->subs[0] = 0;
+		        c->subs[1] = 0;
+		        c->setChild(n0);           // place tail into chain
 
 		        // if i had to split then postcondition is: single child that no common prefix with x
-	        } else {
-		        c->end = prefix;
-	        }
+//	        } else {
+//		        c->end = prefix;
+//	        }
             assert(prefix == c->end); // after splitting
             auto n = new Node(x, prefix, x.size());
             c->setChild(n); // NB: c has been changed!
@@ -120,7 +117,7 @@ Node* Radix::lookup(const IP &x)
 {
 	auto c = &root;  // current node, start from root
 	while (1) {
-TraceX(*c);
+//TraceX(*c);
 		assert(c != nullptr); // better than while(c) as it makes assumption clearer
 		auto prefix = std::min(c->end, std::min(x.size(), leftmostbit(
 				c->addr() ^ x.addr)));  // in [ c.begin, min(c.end, x.size) )
@@ -152,7 +149,7 @@ void Radix::checkInvariants(const IP& ip)
 	    if (!cond) {
 		    log_error << "Failed condition (f->addr() == x.addr && f->size() == x.size()) with "
 		                 "f = " << *f << "; x = " << x;
-		    outline(&root);
+		//    outline(&root);
 	    }
 
 	    assert(f->addr() == x.addr && f->size() == x.size());

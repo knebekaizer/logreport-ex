@@ -120,7 +120,7 @@ ostream& IPRegistry::report(ostream& os) const
 int init(IPRegistry& ipr)
 {
     try {
-        ifstream is("test/c0.txt");
+        ifstream is("test/c3.txt");
         if (!is) {
             log_error << "Open error";
             return -1;
