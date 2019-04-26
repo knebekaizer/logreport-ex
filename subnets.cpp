@@ -3,6 +3,7 @@
 //
 
 #include "subnets.h"
+#include "trie.h"
 
 #include <set>
 
@@ -83,8 +84,6 @@ bool Node::less::operator()(const Node* x, const Node* y) const {
         || (x->iaddr == y->iaddr && x->bits < y->bits);
 }
 
-#undef DEF_LOG_LEVEL
-#define DEF_LOG_LEVEL (LOG_LEVEL::debug)
 
 // tree
 void Tree::insert(Node* node)
@@ -100,11 +99,9 @@ void Tree::insert(Node* node)
         // for current level of nesting
         bound = current->subs.lower_bound(node);
         if (bound == current->subs.begin()) {
-            TraceX(2);
             // not found in children, insert into the current level
             break;
         } else if (bound != current->subs.end() && (*bound)->iaddr == node->iaddr) {
-            TraceX(3);
             // exact match or subnet?
             if ((*bound)->bits == node->bits) {
                 // Check for exact match when building. Ignore (warn) if owner is the same, otherwise raise error
@@ -121,7 +118,6 @@ void Tree::insert(Node* node)
                 break;
             }
         } else {
-            TraceX(5);
             // one step back over sorted siblings
             assert(bound != current->subs.begin());
             auto prev = std::prev(bound); // bound; --prev; //
@@ -158,23 +154,14 @@ Node* Tree::lookup(const IP4Address& ip)
 
     Node* current = this;
     auto bound = current->subs.end();
-    TraceX(*node);
 
-    int level = 0;
     while (!current->subs.empty()) {
-        TraceX(level);
-        ++level;
-        TraceX(1);
-        TraceX(*current);
-        TraceX(current->subs.size());
         // for current level of nesting
         bound = current->subs.lower_bound(node);
         if (bound == current->subs.begin()) {
-            TraceX(2);
             // not found in children, insert into the current level
             break;
         } else if (bound != current->subs.end() && (*bound)->iaddr == node->iaddr) {
-            TraceX(3);
             // exact match or subnet?
             if ((*bound)->bits == node->bits) {
                 // Check for exact match when building. Ignore (warn) if owner is the same, otherwise raise error
@@ -189,7 +176,6 @@ Node* Tree::lookup(const IP4Address& ip)
                 break;
             }
         } else {
-            TraceX(5);
             // one step back over sorted siblings
             assert(bound != current->subs.begin());
             auto prev = std::prev(bound); // bound; --prev; //
@@ -206,123 +192,47 @@ Node* Tree::lookup(const IP4Address& ip)
     return current;
 }
 
-struct IP4N {
-    uint32_t a;
-    uint8_t bits;
-};
-
-class RNode : public IP4N
-{
-public:
-    uint32_t mask;
-    RNode* left;
-    RNode* right;
-    uint8_t plen;
-};
-
-
-class Radix
-{
-    RNode* lookup(const IP4Network& ip) const;
-    void insert(const IP4Network& ip);
-};
-
-RNode*
-Radix::lookup(const IP4Network& ip) const
-{
-    RNode* c = root;
-    while (c->zero) { // has child?
-        if (c->zero->supernetOf(ip)) {
-            c = c->zero;
-        } else if (c->one->supernetOf(ip)) {
-            c = c->one;
-        } else {
-            break;
-        }
-    }
-}
-
-uint32_t mask(uint8_t bits)
-{
-    return ~0u << (32 - bits);
-}
-
-
-void
-Radix::insert(const IP4N& i)
-{
-    RNode* p = lookup(ip); // parent
-
-    // ip.bits > c.bits
-    // if no children then add ip as  child
-    // if one child has common prefix then split it
-    // otherwise add ip as a child
-
-    int bits; // length of network mask = number of network bits
-    int plen; // length of path to the current node (ibn bits); plen <= nbits
-
-    if (p->left) {
-        auto c = p->left;
-        auto x = (c.a ^ i.a) & ~mask(p->plen); // clear first p->plen bits
-        if (x) { // C and I have common prefix; split them
-            if (i.bits < c.plen && (x & mask(i.bits) == 0)) {
-                // insert i as super of c
-            } else if (c.plen < i.bits && (x & mask(c.plen) == 0)) {
-                // c is super of i; recurse further
-            }
-        }
-    }
-
 /*
-        if p->left and i have common prefix
-            split left:
-                c = left;
-                x = c ^ i
-                for (n = p.plen+1; n<i.nbits && n < c->plen) {}
-                    if bit(x, n)  break // n-th bit differ
-                }
-                // now n points next to common bits
-                if n == c->plen
-                    then recurse further
-                if n == i->nbits // i is super of c
-                    then make i a new child of P and move c to child of i
-                else if n < i->nbits
-                    then split:
-                        create nc as new_child(i, n)
-                        move c to child of nc
-                        set i as second child of nc
+void outline(RNode* p, int level)
+{
+    if (!p)
+        return;
 
-        else if p->right {
-            assert p->right and i have common prefix;
-            split right;
-        } else {
-            p->right = i;
-        }
-
-
-    } else {
-        p->left = i;
-    }
-*/
-    auto pm = p->mask;
-    // len is length of parent mask
-
-    int next = len + 1;
-
-    auto i = ip.iaddr;
-
-    diff = (i ^ other) & ~pm;
-    while (bitset(diff, len)) {
-        ++len;
-    }
-    uint32_t tail = i & ~pm;
-
+    std::cout << std::string(level, '\t') << *p << std::endl;
+    outline(p->left, level+1);
+    outline(p->right, level+1);
 }
 
+void walk(RNode* p, int level)
+{
+    if (!p)
+        return;
+
+    if (p->bits == p->plen) {
+        std::cout << std::string(level, '\t') << *(IP4Network*)p << std::endl;
+        ++level;
+    }
+    if (p->left && p->right && p->right->iaddr < p->left->iaddr) {
+        walk(p->right, level);
+        walk(p->left, level);
+    } else {
+        walk(p->left, level);
+        walk(p->right, level);
+    }
+}
+*/
 
 #ifdef UT_CATCH
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
+
+
+TEST_CASE( "leftmostbit", "[leftmostbit]")
+{
+    REQUIRE( leftmostbit(0b1) == 31 ) ;
+    REQUIRE( leftmostbit(0b00000000000000000000000000000100) == 29 ) ;
+    REQUIRE( leftmostbit(0b10000000010000000000000000000100) == 0 ) ;
+}
 
 TEST_CASE( "IP4Network.supernetOf", "[IP4Network]")
 {

@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 
 #include "trace.h"
+#include "trie.h"
 #include "subnets.h"
 
 using namespace std;
@@ -50,7 +51,7 @@ int IPRegistry::load(istream& is)
             //  log_trace << lines << ": " << netw << "|" << bits;
         }
         catch (std::exception& e) {
-            log_error << "Bad format: line " << size() << " " << e.what();
+            log_error << "Bad format: line " << size() + 1 << " " << e.what();
             is.setstate(std::ios_base::badbit);
             //    break;
         }
@@ -64,8 +65,15 @@ int IPRegistry::load(istream& is)
     for (auto& x : *this) {
         tree.insert(x.node.get());
     }
-
     log_trace << "Tree:\n" << tree;
+
+    trie::Radix trie;
+    for (auto& x : *this) {
+        TraceX(*x.node.get());
+        trie.insert(IP(*x.node.get()));
+    }
+    outline(&trie.root);
+    walk(&trie.root);
 
     return 0;
 }
@@ -112,7 +120,7 @@ ostream& IPRegistry::report(ostream& os) const
 int init(IPRegistry& ipr)
 {
     try {
-        ifstream is("test/c5.txt");
+        ifstream is("test/c0.txt");
         if (!is) {
             log_error << "Open error";
             return -1;
@@ -122,24 +130,8 @@ int init(IPRegistry& ipr)
         if (rc)
             return 1;
 
-//        IP4Address ip("239.254.0.0");
-//        Node* p1 = ipr.tree.lookup(ip);
-//        TraceX(*p1);
-//        Node* p2 = ipr.tree.lookup(IP4Address("240.0.0.1"));
-//        TraceX(*p2);
-
-        ifstream ipdata("test/iplog.dat");
-        ipr.processData(ipdata);
-
-    //  hook-professor 132.225.143.20/30
-//        Node* n1 = ipr.tree.lookup(IP4Address("132.225.143.21"));
-//        TraceX(*n1);
-//        n1->incr(42);
-//        auto f = find_if(ipr.begin(), ipr.end(), [](auto& x) { return x.id == string("hook-professor"); } );
-//        if (f != ipr.end())\
-//            TraceX(f->node->data_);
-//        else
-//            log_trace << "Not found";
+//        ifstream ipdata("test/iplog.dat");
+//        ipr.processData(ipdata);
 
         return 0;
     }
@@ -158,16 +150,8 @@ int main()
     IPRegistry ipr;
     auto rc = init(ipr);
 
-    ofstream os("report_5.txt");
-    ipr.report(os);
-
-
-//    char s[] = "192.168.0.5";
-//    in_addr   addr;
-//    unsigned char* a = (unsigned char*)&addr.s_addr;
-//    auto rc =  inet_pton(AF_INET, s, &addr);
-//    cout << rc << endl;
-//    printf("%u.%u.%u.%u\n", a[0], a[1], a[2], a[3]);
+//    ofstream os("report_30.txt");
+//    ipr.report(os);
 
     return rc;
 }
@@ -177,7 +161,7 @@ int main()
 #ifdef UT_CATCH
 #include "catch.hpp"
 
-
+/*
 TEST_CASE( "IP4Address.lookup", "[IP4Address]")
 {
     Tree tree;
@@ -187,5 +171,6 @@ TEST_CASE( "IP4Address.lookup", "[IP4Address]")
     auto correct = ( (p1->iaddr == (239<<24) + (254<<16)) && p1->bits == 15);
     REQUIRE( correct );
 }
+*/
 
 #endif // UT_CATCH

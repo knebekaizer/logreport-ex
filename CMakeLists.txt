@@ -10,11 +10,12 @@ include_directories( . )
 set(SOURCE_FILES
         main.cpp
         subnets.cpp
+        trie.cpp
     #    net/radix.c
     #    cust_db.cpp cust_db.h report.cpp report.h subnets.cpp subnets.h
 )
 
-add_executable(iplog ${SOURCE_FILES} trie.cpp)
+add_executable(iplog ${SOURCE_FILES} )
 
 add_executable(iplog_ut ${SOURCE_FILES})
 

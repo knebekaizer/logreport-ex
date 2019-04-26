@@ -3,8 +3,6 @@
 #ifndef IPLOG_TEST_SUBNETS_H
 #define IPLOG_TEST_SUBNETS_H
 
-#endif //IPLOG_TEST_SUBNETS_H
-
 #include <cstdint>
 #include <set>
 
@@ -15,16 +13,6 @@
 
 #include "trace.h"
 
-class IP {
-public:
-    using AddrT = uint64_t;
-    using MaskT = uint64_t;
-    AddrT   addr() const { return addr_; }
-    MaskT   mask() const { return mask_; }
-private:
-    AddrT   addr_ = 0;
-    MaskT   mask_ = ~0;
-};
 
 struct IP4Address {
     IP4Address() {}
@@ -49,8 +37,6 @@ struct IP4Network : public IP4Address{
 inline
 std::ostream& operator<<(std::ostream& os, const IP4Network& ip)
 {
-//    auto a = (const uint8_t*)&ip.addr;
-//    os << (int)a[0] << '.' << (int)a[1] << '.' << (int)a[2] << '.' << (int)a[3] << '/' << (int)ip.bits;
     os << (ip.iaddr>>24) << '.' << ((ip.iaddr>>16) & 0xff) << '.' << ((ip.iaddr>>8) & 0xff) << '.' << (ip.iaddr & 0xff) << '/' << (int)ip.bits;
     return os;
 }
@@ -87,26 +73,50 @@ public:
     Node* lookup(const IP4Address&);
 };
 
+
 std::ostream& operator<<(std::ostream& os, const Tree& tree);
 
 /*
-class Node : public IPData {
+class RNode : public IP4Network
+{
 public:
-    friend class Tree;
-//    using CountT = uint64_t; // need more bits?
-//    CountT  data() const { return data_; }
-//    CountT  addData(uint64_t incr) { return data_ += incr; } /// @todo Overflow?
-
-private:
-//  CountT  data_ = 0;
-    struct less : std::binary_function<Node*, Node*, bool> {
-        bool operator()(const Node* x, const Node* y) const { return x->iaddr < y->iaddr; }
-    };
-    std::set<Node*, Node::less>  subs;
+    RNode() : IP4Network() {}
+    RNode(const IP4Network ip, uint8_t len) : IP4Network(ip), plen(len) {}
+    uint8_t plen = 0;
+    RNode* left = 0;
+    RNode* right = 0;
 };
 
-class Tree : public Node {
+
+class Radix : public RNode
+{
 public:
-    void insert(Node* ip);
+//    RNode* lookup(const IP4Network& ip) const;
+    void insert(const IP4Network& ip) {};
 };
+
+void walk(RNode* p, int level = 0);
+void outline(RNode* p, int level = 0);
+
+inline
+std::ostream& operator<<(std::ostream& os, const RNode& ip)
+{
+    os <<
+    static_cast<const IP4Network&>(ip)
+    << " - " << (int)ip.plen;
+    return os;
+}
 */
+/*
+inline unsigned int leftmostbit(uint32_t x)
+{
+	int32_t y = x; // use sign bit
+	unsigned int b = 0;
+    for ( ; b < 32; ++b) {
+    	if ((y << b) < 0) break;
+    }
+    return b;
+}
+*/
+
+#endif //IPLOG_TEST_SUBNETS_H
