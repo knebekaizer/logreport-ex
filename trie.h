@@ -20,6 +20,8 @@ struct Node;
  */
 struct IP {
     IP() {};
+	explicit IP(const std::string& s)
+		: IP(IP4Network(s, 32)) {}
 	explicit IP(const IP4Network& ip) : addr(ip.addr), bits(ip.bits) {}
 
     using AddrT = uint32_t;
@@ -41,16 +43,20 @@ struct IP {
  + subs[k].begin == this->end Do I need to store it twice? Traverse over the chain always
 */
 
+class Payload;
+
 namespace trie {
 
 struct Node {
 
 	Node() = default;
 
-    Node(const Node& node, int begin, int end);
     Node(const IP& ip, int begin, int pos);
 
     int setChild(Node* node);
+
+	int size() const { return ip.size(); }
+	IP::AddrT addr() const { return ip.addr; }
 
 //	const IP* const ip;  // chain members share the same pointer to save memory
     IP ip;         // sizeof = 8 or 24 for the cost of indirection. Tune for cache line size
@@ -58,17 +64,14 @@ struct Node {
     uint8_t end = 8 * sizeof(IP::AddrT);
     Node *subs[2] = {0,0};    // struct { Node *zero, *one; } subs;
 
-    int size() const { return ip.size(); }
-    IP::AddrT addr() const { return ip.addr; }
+	Payload* data;
 };
 // Should I improve padding by inlining IP into Node? Or use attr packed
 
 
 class Radix {
 public:
-	Radix() {};
-
-    void insert(const IP& x);
+    Node* insert(const IP& x);
     Node* lookup(const IP& x);
 
     Node root;

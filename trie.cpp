@@ -33,17 +33,13 @@ inline unsigned int bit(IP::AddrT x, unsigned int bit)
 //#undef DEF_LOG_LEVEL
 //#define DEF_LOG_LEVEL (LOG_LEVEL::info)
 
-//insert x
-void Radix::insert(const IP& x)
+trie::Node* Radix::insert(const IP& x)
 {
     auto c = &root;  // current node, start from root
     Node* parent = nullptr;
     while (1) {
-//outline(&root);
         assert(c != nullptr); // better than while(c) as it makes assumption clearer
         auto prefix = std::min(c->end, std::min(x.size(), leftmostbit(c->addr() ^ x.addr)));  // in [ c.begin, min(c.end, x.size) )
-//Trace2(*c, x);
-//TraceX((int)prefix);
         assert(prefix > c->begin || c == &root); // for any node but root. Root may have zero prefix
 
         if (prefix == x.size()) {
@@ -52,8 +48,7 @@ void Radix::insert(const IP& x)
         		// Don't create empty split; c->end > c->size so there is a tail somewhere - use it
         		// just replace IP data
         		c->ip = x;
-//Trace2(01, *c);
-        		break;
+        		return c;
 	        }
             // insert x right before node
             auto n = new Node(x, c->begin, prefix);
@@ -61,49 +56,39 @@ void Radix::insert(const IP& x)
             n->setChild(c);
             assert(parent != nullptr);
             parent->setChild(n);
-//Trace2(1, *n);
-            break; // done
+            return n; // done
         }
 
         // else insert after
         if (prefix < c->end) {
- //       	if (c != &root) {
-		        //  c = split(c, prefix);
-		        auto n0 = new Node(*c);  //  = node[0:pos] Make shallow copy and truncate
-		        c->end = prefix;             // = node[pos:] May remove unused bytes from IP but should i care?
-		        n0->begin = prefix;
-		        c->subs[0] = 0;
-		        c->subs[1] = 0;
-		        c->setChild(n0);           // place tail into chain
+	        //  Split at prefix position;
+	        auto n0 = new Node(*c);  //  = node[pos:] May remove unused bytes from IP but should i care?
+	        c->end = prefix;         //  = node[0:pos] Truncate
+	        n0->begin = prefix;
+	        c->setChild(n0);         // place tail into chain
 
-		        // if i had to split then postcondition is: single child that no common prefix with x
-//	        } else {
-//		        c->end = prefix;
-//	        }
-            assert(prefix == c->end); // after splitting
             auto n = new Node(x, prefix, x.size());
-            c->setChild(n); // NB: c has been changed!
-//Trace2(2, *n);
-            break; // done
+
+	        // Let's that __both__ children actually updated
+	        assert(bit(n0->addr(), n0->begin) != bit(n->addr(), n->begin));
+
+	        c->setChild(n);        // Both children are updated in place
+	        return n;
         }
 
         assert(prefix == c->end);
         Node** next = &c->subs[ bit(x.addr, prefix) ];
-//Trace2(x, bit(x.addr, prefix));
         if (*next == nullptr) {
             *next = new Node(x, prefix, x.size());
-//Trace2(3, **next);
-            break;
+            return *next;
+        } else {
+	        // else dive deeper
+	        parent = c;
+	        c = *next;
         }
-
-        // else dive deeper
-        parent = c;
-        c = *next;
-//Trace2("4 next", *c);
     }
 }
 
-namespace trie {
 
 trie::Node* Radix::lookup(const IP &x)
 {
@@ -139,7 +124,6 @@ trie::Node* Radix::lookup(const IP &x)
 }
 
 
-} // namespace trie
 
 int trie::Node::setChild(trie::Node* node)
 {

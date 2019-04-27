@@ -11,12 +11,24 @@
 
 using namespace std;
 
+class Payload {
+public:
+	using CountT = uint64_t;
+	void incr(uint64_t x) { data_ += x; }
+	CountT data() const { return data_; }
+//	operator const CountT() const { return data(); }
+private:
+	uint64_t data_ = 0;
+};
+
 struct RegElem {
     RegElem(const string& name, const string& addr, int bits)
         : id(name), node(std::make_unique<Node>(addr, bits)) {}
 
     string id;
     std::unique_ptr<Node> node;
+
+    Payload data;
 };
 
 #include <vector>
@@ -68,7 +80,7 @@ int IPRegistry::load(istream& is)
 
     }
     std::sort(begin(), end(), [](const RegElem& x, const RegElem& y){ return x.id < y.id; } );
-    log_info << "Done " << size() << " lines";
+    log_trace << "Done " << size() << " lines";
     // check eof and failbit. Stop ib case of failbit but not eof, as it means the stream is heavily misformatted
     if (is.bad()) return 1;
 
@@ -78,14 +90,15 @@ int IPRegistry::load(istream& is)
 //    log_trace << "Tree:\n" << tree;
 
     for (auto& x : *this) {
-//      TraceX(*x.node.get());
-        trie.insert(IP(*x.node.get()));
+        auto node = trie.insert(IP(*x.node.get()));
+        assert(node->ip == IP(*x.node.get()));
+        node->data = &x.data;
     }
 
     selfTest();
 
 //    outline(&trie.root);
-    log_trace << trie;
+//    log_trace << trie;
 
     return 0;
 }
@@ -109,14 +122,21 @@ void IPRegistry::selfTest()
 }
 #endif
 
+//#define Tree
 istream& IPRegistry::processData(istream& is)
 {
     string ip;
     uint64_t bytes;
     uint64_t line = 1;
     while (is >> ip >> bytes) {
+
         Node* n = tree.lookup(ip);
         n->incr(bytes);
+
+        Payload* p = trie.lookup(IP(ip))->data;
+        assert(p);
+        p->incr(bytes);
+
         ++line;
     }
     if (!is.eof()) {
@@ -137,7 +157,11 @@ ostream& IPRegistry::report(ostream& os) const
             sum = 0;
             last = x.id;
         }
-        sum += x.node->data_;
+//#ifdef Tree
+//        sum += x.node->data_;
+//#else
+        sum += x.data.data();
+//#endif
     }
     if (!last.empty() && sum)
         os << last << "\t" << sum << endl;
@@ -163,8 +187,8 @@ int initData(IPRegistry &ipr)
             return 1;
 
 
-//        ifstream ipdata("test/data/iplog.dat");
-//        ipr.processData(ipdata);
+        ifstream ipdata("test/data/iplog.dat");
+        ipr.processData(ipdata);
 
         return 0;
     }
@@ -190,8 +214,8 @@ int main()
     IPRegistry ipr;
     auto rc = initData(ipr);
 
-//    ofstream os("report_30.txt");
-//    ipr.report(os);
+//    ofstream os("trie_report_5.txt");
+    ipr.report(cout);
 
     return rc;
 }
