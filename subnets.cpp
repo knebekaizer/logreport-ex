@@ -10,10 +10,6 @@
 #include "trace.h"
 
 
-//static
-//std::ostream& operator<<(std::ostream& os, const Node& node) {
-//    return os << *node.ip;
-//}
 
 static std::ostream& outline(std::ostream& os, const Node& node, int level = 0) {
     std::string prefix(level, '\t');
@@ -40,7 +36,7 @@ IP4Address::IP4Address(const std::string& ip)
     auto rc = inet_pton(AF_INET, ip.c_str(), &a);
     if (!rc)
         throw std::invalid_argument("Can't convert to in_addr: " + ip.substr(0, 20));
-    iaddr = ntohl(a);
+    addr = ntohl(a);
 }
 
 
@@ -51,14 +47,12 @@ IP4Network::IP4Network(const std::string& ip, int b)
     int shift = 32 - bits;
     if (shift != 0) {
         uint32_t mask = ~0u >> shift << shift;
-        if (iaddr & ~mask) {
-            log_warn << "Invalid IP: host bits are set " << *this;
+        if (addr & ~mask) {
+            log_warn << "Invalid IP: host bit set: [" << *this <<"] Host bits are ignored";
         //    throw std::invalid_argument("Invalid IP: host bits are set");
-            iaddr &= mask;
-        //  addr = htonl(iaddr);
+            addr &= mask;
         }
     }
-//    cout << rc << endl;
 }
 
 bool IP4Network::supernetOf(const IP4Address& sub) const
@@ -66,7 +60,7 @@ bool IP4Network::supernetOf(const IP4Address& sub) const
     // widest mask is numerically less than the narrow one
     // @todo: use intrinsic for bit ops
     auto b = 32 - bits;
-    return (sub.iaddr >> b << b) == iaddr;
+    return (sub.addr >> b << b) == addr;
 }
 
 bool IP4Network::supernetOf(const IP4Network& sub) const
@@ -75,13 +69,13 @@ bool IP4Network::supernetOf(const IP4Network& sub) const
     // @todo: use intrinsic for bit ops
     auto b = 32 - bits;
     return (bits <= sub.bits
-            && (sub.iaddr >> b << b) == iaddr);
+            && (sub.addr >> b << b) == addr);
 }
 
 bool Node::less::operator()(const Node* x, const Node* y) const {
-//    log_trace << *x << ((x->ip->iaddr < y->ip->iaddr) ? " < " : " > ") << *y;
-    return x->iaddr < y->iaddr
-        || (x->iaddr == y->iaddr && x->bits < y->bits);
+//    log_trace << *x << ((x->ip->addr < y->ip->addr) ? " < " : " > ") << *y;
+    return x->addr < y->addr
+        || (x->addr == y->addr && x->bits < y->bits);
 }
 
 
@@ -101,7 +95,7 @@ void Tree::insert(Node* node)
         if (bound == current->subs.begin()) {
             // not found in children, insert into the current level
             break;
-        } else if (bound != current->subs.end() && (*bound)->iaddr == node->iaddr) {
+        } else if (bound != current->subs.end() && (*bound)->addr == node->addr) {
             // exact match or subnet?
             if ((*bound)->bits == node->bits) {
                 // Check for exact match when building. Ignore (warn) if owner is the same, otherwise raise error
@@ -149,7 +143,7 @@ Node* Tree::lookup(const IP4Address& ip)
     // When accumelating, root.add means "unknown"
 
 //    Node* node = static_cast<Node*>(const_cast<IP4Address*>(&ip));
-    Node n(ip.iaddr);
+    Node n(ip.addr);
     Node* node = &n;
 
     Node* current = this;
@@ -161,7 +155,7 @@ Node* Tree::lookup(const IP4Address& ip)
         if (bound == current->subs.begin()) {
             // not found in children, insert into the current level
             break;
-        } else if (bound != current->subs.end() && (*bound)->iaddr == node->iaddr) {
+        } else if (bound != current->subs.end() && (*bound)->addr == node->addr) {
             // exact match or subnet?
             if ((*bound)->bits == node->bits) {
                 // Check for exact match when building. Ignore (warn) if owner is the same, otherwise raise error
@@ -192,35 +186,6 @@ Node* Tree::lookup(const IP4Address& ip)
     return current;
 }
 
-/*
-void outline(RNode* p, int level)
-{
-    if (!p)
-        return;
-
-    std::cout << std::string(level, '\t') << *p << std::endl;
-    outline(p->left, level+1);
-    outline(p->right, level+1);
-}
-
-void walk(RNode* p, int level)
-{
-    if (!p)
-        return;
-
-    if (p->bits == p->plen) {
-        std::cout << std::string(level, '\t') << *(IP4Network*)p << std::endl;
-        ++level;
-    }
-    if (p->left && p->right && p->right->iaddr < p->left->iaddr) {
-        walk(p->right, level);
-        walk(p->left, level);
-    } else {
-        walk(p->left, level);
-        walk(p->right, level);
-    }
-}
-*/
 
 #ifdef UT_CATCH
 #define CATCH_CONFIG_MAIN
@@ -238,7 +203,7 @@ TEST_CASE( "IP4Network.supernetOf", "[IP4Network]")
 {
     IP4Network ip("192.168.0.0", 24);
     REQUIRE( ip.supernetOf( IP4Network("192.168.0.64", 28) )  );
-    REQUIRE( ip.supernetOf( IP4Network("10.168.1.16", 8) ) == false );
+    REQUIRE( ip.supernetOf( IP4Network("10.168.1.16", 8) ) == false );  // this shall produce WARN log
     REQUIRE( ip.supernetOf( IP4Network("192.168.0.0", 32) ));
     REQUIRE( ip.supernetOf( IP4Network("192.168.0.255", 32) ));
     REQUIRE( ip.supernetOf( IP4Network("192.168.1.16", 31) ) == false );

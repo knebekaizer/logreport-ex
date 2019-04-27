@@ -120,9 +120,10 @@ ostream& IPRegistry::report(ostream& os) const
 int init(IPRegistry& ipr)
 {
     try {
-        ifstream is("test/c5.txt");
+    	string customersFile = "test/data/c5.txt";
+        ifstream is(customersFile);
         if (!is) {
-            log_error << "Open error";
+            log_error << "Open error: " << customersFile;
             return -1;
         }
 
@@ -130,7 +131,7 @@ int init(IPRegistry& ipr)
         if (rc)
             return 1;
 
-//        ifstream ipdata("test/iplog.dat");
+//        ifstream ipdata("test/data/iplog.dat");
 //        ipr.processData(ipdata);
 
         return 0;
@@ -168,7 +169,7 @@ TEST_CASE( "IP4Address.lookup", "[IP4Address]")
     init(tree);
     IP4Address ip("239.254.0.0");
     Node* p1 = tree.lookup(ip);
-    auto correct = ( (p1->iaddr == (239<<24) + (254<<16)) && p1->bits == 15);
+    auto correct = ( (p1->addr == (239<<24) + (254<<16)) && p1->bits == 15);
     REQUIRE( correct );
 }
 */

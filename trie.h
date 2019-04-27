@@ -20,7 +20,7 @@ struct Node;
  */
 struct IP {
     IP() {};
-	explicit IP(const IP4Network& ip) : addr(ip.iaddr), bits(ip.bits) {}
+	explicit IP(const IP4Network& ip) : addr(ip.addr), bits(ip.bits) {}
 
     using AddrT = uint32_t;
     using MaskT = uint8_t;
@@ -79,7 +79,7 @@ public:
 } // namespace trie;
 
 
-
+/// @todo Use intrinsic for HW support
 inline uint8_t leftmostbit(uint32_t x)
 {
 	int32_t y = x; // use sign bit
