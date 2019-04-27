@@ -21,6 +21,7 @@ add_executable(iplog_SELFTEST ${SOURCE_FILES} )
 add_executable(iplog_ut ${SOURCE_FILES})
 
 target_compile_definitions(iplog_ut PRIVATE
+        IPLOG_SELFTEST
         UT_CATCH
 )
 

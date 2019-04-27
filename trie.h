@@ -28,6 +28,10 @@ struct IP {
 	AddrT addr = 0;
 	MaskT bits = 0;  ///< bitmask length, number of network bits
 	uint8_t size() const { return bits; }
+
+	bool operator==(const IP& other) const {
+		return addr == other.addr && bits == other.bits;
+	}
 };
 
 /**

@@ -148,7 +148,7 @@ ostream& IPRegistry::report(ostream& os) const
 }
 
 
-int init(IPRegistry& ipr)
+int initData(IPRegistry &ipr)
 {
     try {
     	string customersFile = "test/data/c5.txt";
@@ -161,6 +161,7 @@ int init(IPRegistry& ipr)
         auto rc = ipr.load(is);
         if (rc)
             return 1;
+
 
 //        ifstream ipdata("test/data/iplog.dat");
 //        ipr.processData(ipdata);
@@ -176,11 +177,18 @@ int init(IPRegistry& ipr)
     return -1;
 }
 
+class IpSummary {
+public:
+	void initData(istream& is);
+	void processLog(istream& is);
+	void printReport(ostream& os);
+};
+
 #ifndef UT_CATCH
 int main()
 {
     IPRegistry ipr;
-    auto rc = init(ipr);
+    auto rc = initData(ipr);
 
 //    ofstream os("report_30.txt");
 //    ipr.report(os);
@@ -192,6 +200,31 @@ int main()
 
 #ifdef UT_CATCH
 #include "catch.hpp"
+
+TEST_CASE( "Trie.lookup", "[Trie]")
+{
+    IPRegistry ipr;
+    int rc = initData(ipr);
+    if (rc) {
+    	log_error << "Initialization error";
+    	exit(1);
+    }
+
+	vector<pair<IP,IP>> data = {
+			{IP({"239.254.94.1", 32}), IP({"239.254.94.0", 23})},
+			{IP({"239.254.1.2", 32}),  IP({"239.254.0.0", 15})},
+			{IP({"239.248.0.2", 32}), IP({"239.248.0.0", 13})},
+			{IP({"239.255.235.108", 32}), IP({"239.254.0.0", 15})}
+	};
+
+	for (const auto& x : data) {
+		bool cond = ipr.trie.lookup(x.first)->ip == x.second;
+		if (!cond) {
+			log_error << "Test failed for " << x.first << " in " << x.second;
+		}
+		REQUIRE(cond);
+	}
+}
 
 /*
 TEST_CASE( "IP4Address.lookup", "[IP4Address]")

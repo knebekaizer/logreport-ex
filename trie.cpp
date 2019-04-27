@@ -30,10 +30,9 @@ inline unsigned int bit(IP::AddrT x, unsigned int bit)
 	return 1 & (x >> (sz - bit));
 }
 
-#undef DEF_LOG_LEVEL
-#define DEF_LOG_LEVEL (LOG_LEVEL::info)
+//#undef DEF_LOG_LEVEL
+//#define DEF_LOG_LEVEL (LOG_LEVEL::info)
 
-//IP x
 //insert x
 void Radix::insert(const IP& x)
 {
@@ -43,8 +42,8 @@ void Radix::insert(const IP& x)
 //outline(&root);
         assert(c != nullptr); // better than while(c) as it makes assumption clearer
         auto prefix = std::min(c->end, std::min(x.size(), leftmostbit(c->addr() ^ x.addr)));  // in [ c.begin, min(c.end, x.size) )
-Trace2(*c, x);
-TraceX((int)prefix);
+//Trace2(*c, x);
+//TraceX((int)prefix);
         assert(prefix > c->begin || c == &root); // for any node but root. Root may have zero prefix
 
         if (prefix == x.size()) {
@@ -53,7 +52,7 @@ TraceX((int)prefix);
         		// Don't create empty split; c->end > c->size so there is a tail somewhere - use it
         		// just replace IP data
         		c->ip = x;
-Trace2(01, *c);
+//Trace2(01, *c);
         		break;
 	        }
             // insert x right before node
@@ -62,7 +61,7 @@ Trace2(01, *c);
             n->setChild(c);
             assert(parent != nullptr);
             parent->setChild(n);
-Trace2(1, *n);
+//Trace2(1, *n);
             break; // done
         }
 
@@ -84,49 +83,58 @@ Trace2(1, *n);
             assert(prefix == c->end); // after splitting
             auto n = new Node(x, prefix, x.size());
             c->setChild(n); // NB: c has been changed!
-Trace2(2, *n);
+//Trace2(2, *n);
             break; // done
         }
 
         assert(prefix == c->end);
         Node** next = &c->subs[ bit(x.addr, prefix) ];
-Trace2(x, bit(x.addr, prefix));
+//Trace2(x, bit(x.addr, prefix));
         if (*next == nullptr) {
             *next = new Node(x, prefix, x.size());
-Trace2(3, **next);
+//Trace2(3, **next);
             break;
         }
 
         // else dive deeper
         parent = c;
         c = *next;
-Trace2("4 next", *c);
+//Trace2("4 next", *c);
     }
 }
 
 namespace trie {
 
-Node* Radix::lookup(const IP &x)
+trie::Node* Radix::lookup(const IP &x)
 {
-	auto c = &root;  // current node, start from root
+	trie::Node* c = &root;  // current node, start from root
+	trie::Node* best = &root;
 	while (1) {
-//TraceX(*c);
+//Trace2(*c, x);
 		assert(c != nullptr); // better than while(c) as it makes assumption clearer
+
 		auto prefix = std::min(c->end, std::min(x.size(), leftmostbit(
 				c->addr() ^ x.addr)));  // in [ c.begin, min(c.end, x.size) )
 
 //Trace2((int)prefix, (int)c->end);
-		if (prefix < c->end || prefix == x.size())
-			return c;
-//Trace2(x, bit(x.addr, c->end));
-		auto p = c->subs[bit(x.addr, c->end)];
-		if (p) {
-			assert(p->begin >= c->end);
-			c = p;
-		} else {
-			return c; // found
+		if (prefix == x.size()) {
+			if (c->size() == c->end) {
+				best = c;
+			}
+			return best;
+		} else if (prefix < c->end)
+			return best;
+
+		assert(prefix == c->end);
+		if (c->size() == c->end) {
+			best = c;
 		}
 
+//Trace2(x, bit(x.addr, c->end));
+		c = c->subs[bit(x.addr, c->end)];
+		if (!c) {
+			return best; // found
+		}
 	}
 }
 
@@ -136,7 +144,6 @@ Node* Radix::lookup(const IP &x)
 int trie::Node::setChild(trie::Node* node)
 {
 	assert(node);
-Trace2(*this, *node);
 	assert(node->begin >= this->end);
     unsigned int k = bit(node->addr(), node->begin);
     assert(k <= 1);
