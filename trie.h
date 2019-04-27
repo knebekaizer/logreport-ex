@@ -41,7 +41,7 @@ namespace trie {
 
 struct Node {
 
-	Node() {};
+	Node() = default;
 
     Node(const Node& node, int begin, int end);
     Node(const IP& ip, int begin, int pos);
@@ -68,12 +68,6 @@ public:
     Node* lookup(const IP& x);
 
     Node root;
-
-#ifdef IPLOG_DEBUG
-	void checkInvariants(const IP& n);
-#else
-#define checkInvariants(x)
-#endif
 };
 
 } // namespace trie;
@@ -92,7 +86,7 @@ inline uint8_t leftmostbit(uint32_t x)
 
 
 void outline(trie::Node* p, int level = 0);
-void walk(trie::Node* p, int level = 0);
+
 
 inline
 std::ostream& operator<<(std::ostream& os, const IP& ip)
@@ -102,5 +96,7 @@ std::ostream& operator<<(std::ostream& os, const IP& ip)
 }
 
 std::ostream& operator<<(std::ostream& os, const trie::Node& ip);
+std::ostream& operator<<(std::ostream& os, const trie::Radix& trie);
+
 
 #endif //IPLOG_TEST_TRIE_H

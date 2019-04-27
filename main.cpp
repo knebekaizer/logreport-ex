@@ -28,6 +28,15 @@ public:
     istream& processData(istream& is);
     ostream& report(ostream& os) const;
     Tree tree;
+	trie::Radix trie;
+
+
+#ifdef IPLOG_SELFTEST
+	void selfTest();
+#else
+#define selfTest()
+#endif
+
 };
 
 
@@ -43,8 +52,9 @@ int IPRegistry::load(istream& is)
             auto pos = netw.find('/');
             if (pos != string::npos) {
                 bits = strtol(netw.c_str() + pos + 1, 0, 10); /// @todo check format: any extra symbols
-                if (bits == 0)
-                    throw std::invalid_argument(netw);
+                if (bits == 0) {
+	                throw std::invalid_argument(netw);
+                }
                 netw.erase(pos);
             }
             push_back({id, netw, bits});
@@ -65,18 +75,39 @@ int IPRegistry::load(istream& is)
     for (auto& x : *this) {
         tree.insert(x.node.get());
     }
-    log_trace << "Tree:\n" << tree;
+//    log_trace << "Tree:\n" << tree;
 
-    trie::Radix trie;
     for (auto& x : *this) {
 //      TraceX(*x.node.get());
         trie.insert(IP(*x.node.get()));
     }
+
+    selfTest();
+
 //    outline(&trie.root);
-    walk(&trie.root);
+    log_trace << trie;
 
     return 0;
 }
+
+#ifdef IPLOG_SELFTEST
+void IPRegistry::selfTest()
+{
+	for (auto const& x : *this) {
+		IP ip(*x.node.get());
+	    auto f = trie.lookup(ip);
+	    bool cond = (f->addr() == ip.addr && f->size() == ip.size());
+	    if (!cond) {
+		    log_error << "Failed condition (f->addr() == x.addr && f->size() == x.size()) with "
+		                 "f = " << *f << "; x = " << ip;
+		//    outline(&root);
+	    }
+
+	    assert(f->addr() == ip.addr && f->size() == ip.size());
+	}
+	log_info << "Trie integrity check passed";
+}
+#endif
 
 istream& IPRegistry::processData(istream& is)
 {

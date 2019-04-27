@@ -102,13 +102,6 @@ Trace2(3, **next);
         c = *next;
 Trace2("4 next", *c);
     }
-
-#ifndef NDEBUG
-	checkInvariants(x);
-    // check invariant
-    auto f = lookup(x);
-    assert(f->addr() == x.addr && f->size() == x.size());
-#endif
 }
 
 namespace trie {
@@ -138,25 +131,6 @@ Node* Radix::lookup(const IP &x)
 }
 
 
-#ifdef IPLOG_DEBUG
-void Radix::checkInvariants(const IP& ip)
-{
-	static std::vector<IP> all;;
-	all.push_back(ip);
-	for (auto const& x : all) {
-	    auto f = lookup(x);
-	    bool cond = (f->addr() == x.addr && f->size() == x.size());
-	    if (!cond) {
-		    log_error << "Failed condition (f->addr() == x.addr && f->size() == x.size()) with "
-		                 "f = " << *f << "; x = " << x;
-		//    outline(&root);
-	    }
-
-	    assert(f->addr() == x.addr && f->size() == x.size());
-	}
-}
-#endif
-
 } // namespace trie
 
 int trie::Node::setChild(trie::Node* node)
@@ -183,15 +157,17 @@ void outline(trie::Node* p, int level)
     outline(p->subs[1], level+1);
 }
 
-void walk(trie::Node* p, int level)
+static void walk(const trie::Node* p, int level = 0);
+
+template<class function>
+void walk(const trie::Node* p, int level, function f)
 {
     if (!p) {
-//        std::cout << std::string(level, '\t') << 0 << std::endl;
         return;
     }
 
     if (p->size() == p->end) {
-	    std::cout << std::string(level, '\t') << *p << std::endl;
+    	f(p, level);
 	    ++level;
     }
 
@@ -202,6 +178,16 @@ void walk(trie::Node* p, int level)
 	    walk(p->subs[1], level);
 	    walk(p->subs[0], level);
     }
+}
+
+static void walk(const trie::Node* p, int level) {
+	walk(p, level, [](auto p, int level){ std::cout << std::string(level, '\t') << *p << std::endl; });
+}
+
+std::ostream& operator<<(std::ostream& os, const Radix& trie) {
+//	walk(&trie.root, 0, [](auto p, int level){ std::cout << std::string(level, '\t') << *p << std::endl; });
+	walk(&trie.root);
+	return os;
 }
 
 

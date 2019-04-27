@@ -16,7 +16,7 @@ set(SOURCE_FILES
 )
 
 add_executable(iplog ${SOURCE_FILES} )
-add_executable(iplog_DEBUG ${SOURCE_FILES} )
+add_executable(iplog_SELFTEST ${SOURCE_FILES} )
 
 add_executable(iplog_ut ${SOURCE_FILES})
 
@@ -24,6 +24,6 @@ target_compile_definitions(iplog_ut PRIVATE
         UT_CATCH
 )
 
-target_compile_definitions(iplog_DEBUG PRIVATE
-        IPLOG_DEBUG
+target_compile_definitions(iplog_SELFTEST PRIVATE
+        IPLOG_SELFTEST
 )
