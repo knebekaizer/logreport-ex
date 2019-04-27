@@ -1,6 +1,4 @@
-//
-// Created by Vladimir Ivanov on 2019-04-23.
-//
+/// @file
 
 #include "subnets.h"
 #include "trie.h"
@@ -9,6 +7,50 @@
 
 #include "trace.h"
 
+using std::string;
+
+
+void IP::parse(const string& s)
+{
+	in_addr_t   a;
+	auto rc = inet_pton(AF_INET, s.c_str(), &a);
+	if (!rc) {
+		throw std::invalid_argument("Can't convert to in_addr: " + s.substr(0, 20));
+	}
+	addr = ntohl(a);
+
+	if (bits < addr_size) {
+		uint32_t mask = ~0U >> bits;
+		if (addr & mask) {
+			log_warn << "Invalid IP: host bit set: [" << *this <<"] Host bits are ignored";
+			//    throw std::invalid_argument("Invalid IP: host bits are set");
+			addr &= ~mask;
+		}
+	}
+}
+
+IP::IP(string s)
+{
+	auto pos = s.find('/');
+	if (pos != string::npos) {
+		const char* p = s.c_str();
+		char* e = 0;
+		bits = strtol(p + pos + 1, &e, 10); /// @todo check format: any extra symbols
+		if (bits == 0 || bits > addr_size || e != p + s.size()) {
+			throw std::invalid_argument("Invalid network mask: " + s);
+		}
+		s.erase(pos);
+	}
+	// 	bits defaulted to addr_size in class declaration
+
+	parse(s);
+}
+
+IP::IP(string s, int b)
+	: bits((MaskT)b)
+{
+	parse(s);
+}
 
 
 static std::ostream& outline(std::ostream& os, const Node& node, int level = 0) {
@@ -191,6 +233,39 @@ Node* Tree::lookup(const IP4Address& ip)
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
+#include <cstdlib>
+
+TEST_CASE( "IP.parse", "[IP]")
+{
+	for (int k=0; k<16; ++k) {
+		int bits = (1u + (uint8_t) rand()) % 32;
+		uint32_t a = (uint32_t) (rand() & (~0u << (32 - bits)));
+		char buf[20];
+		snprintf(buf, sizeof(buf), "%d.%d.%d.%d/%d", (a >> 24) & 0xff, (a >> 16) & 0xff, (a >> 8) & 0xff, a & 0xff,
+		         bits);
+		IP ip(buf);
+		REQUIRE(ip.addr == a);
+		REQUIRE(ip.bits == bits);
+	}
+
+	int err_count = 0;
+	std::string bad[] = {
+			"10.168.1.16/255",
+			"10.168.1.16/0",
+			"10.168.1.16/1O", // letter "O" instead of digit 0
+			"512.168.1.16/8"
+	};
+	for (auto& s : bad) {
+		try {
+			IP ip(s);
+		}
+		catch (std::exception &e) {
+			log_info << "Exception test: " << e.what();
+			++err_count;
+		}
+	}
+	REQUIRE(err_count == sizeof(bad) / sizeof(*bad));
+};
 
 TEST_CASE( "leftmostbit", "[leftmostbit]")
 {

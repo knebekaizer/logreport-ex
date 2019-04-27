@@ -16,27 +16,6 @@ struct Node;
 
 
 /**
- * Immutable object
- */
-struct IP {
-    IP() {};
-	explicit IP(const std::string& s)
-		: IP(IP4Network(s, 32)) {}
-	explicit IP(const IP4Network& ip) : addr(ip.addr), bits(ip.bits) {}
-
-    using AddrT = uint32_t;
-    using MaskT = uint8_t;
-
-	AddrT addr = 0;
-	MaskT bits = 0;  ///< bitmask length, number of network bits
-	uint8_t size() const { return bits; }
-
-	bool operator==(const IP& other) const {
-		return addr == other.addr && bits == other.bits;
-	}
-};
-
-/**
 @Invariants:
  + begin < end (eq for exact dup)
  + end <= size

@@ -32,6 +32,29 @@ struct IP4Network : public IP4Address
     uint8_t     bits = 0;
 };
 
+
+struct IP {
+	IP() = default;
+	explicit IP(std::string s);  // s by value
+	explicit IP(std::string s, int bits);
+	explicit IP(const IP4Network& ip) : addr(ip.addr), bits(ip.bits) {}
+
+	using AddrT = uint32_t;
+	using MaskT = uint8_t;
+	static constexpr auto addr_size = 32;
+
+	AddrT addr = 0;
+	MaskT bits = addr_size;  ///< network mask length
+	uint8_t size() const { return bits; }
+
+	bool operator==(const IP& other) const {
+		return addr == other.addr && bits == other.bits;
+	}
+private:
+	void parse(const std::string& s);
+};
+
+
 inline
 std::ostream& operator<<(std::ostream& os, const IP4Network& ip)
 {
