@@ -71,4 +71,18 @@ private:
 std::ostream& operator<<(std::ostream& os, const IPv6& ip);
 
 
+/// @return 0 or 1 only (nefer 0b100).
+inline unsigned int bit(IP::AddrT x, unsigned int bit)
+{
+	assert(bit <= IP::addr_size - 1);
+	return 1 & (x >> (IP::addr_size - 1 - bit));
+}
+
+/// @return 0 or 1 only (nefer 0b100).
+inline unsigned int bit(IPv6::AddrT a, unsigned int bit)
+{
+	assert(bit <= IPv6::addr_size - 1);
+	return 1 & (a[bit >> 3] >> (7 - (bit & 7)));
+}
+
 #endif //IPLOG_TEST_SUBNETS_H

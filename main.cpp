@@ -73,8 +73,8 @@ public:
 
 	std::set<RegElem, RegElem::less>  registry;
 
-	trie::Radix trie;
-	trie::Radix trie_v6;
+	trie::Radix<IP> trie;
+//	trie::Radix trie_v6;
 
 	Payload unknown;
 
