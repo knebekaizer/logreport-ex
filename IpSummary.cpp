@@ -56,13 +56,13 @@ int IpSummary::load(istream& is)
 			auto elem = registry.emplace(id).first;
 			if (netw.find(':') != string::npos) {
 				// ipv6
-				auto node = trie_v6.insert(IPv6(netw));
+				auto node = trie_v6.insert(IPv6(netw), elem->data.get());
 				assert(node->ip == IPv6(netw));
-				node->data = elem->data.get();
+				node = 0; // prevent "unused var" compiler warning
 			} else {
-				auto node = trie.insert(IP(netw));
+				auto node = trie.insert(IP(netw), elem->data.get());
 				assert(node->ip == IP(netw));
-				node->data = elem->data.get();
+				node = 0; // prevent "unused var" compiler warning
 			}
 		}
 		catch (std::exception& e) {

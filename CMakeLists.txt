@@ -21,7 +21,8 @@ add_executable(iplog_SELFTEST ${SOURCE_FILES} IpSummary.cpp IpSummary.h)
 add_executable(iplog_ut ${SOURCE_FILES} IpSummary.cpp IpSummary.h)
 
 target_compile_definitions(iplog PRIVATE
-#        DEF_LOG_LEVEL=LOG_LEVEL::warn
+        DEF_LOG_LEVEL=LOG_LEVEL::warn
+        NDEBUG
 )
 
 target_compile_definitions(iplog_ut PRIVATE

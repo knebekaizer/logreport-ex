@@ -9,6 +9,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <deque>
 
 #ifdef IPLOG_SELFTEST
 #include <vector>
@@ -71,11 +72,12 @@ struct Node {
 
 	Node() = default;
 
-	Node(const IP& i, int b, int e)
+	Node(const IP& i, int b, int e, Payload* p)
 		: ip(i)
 		, begin(b)
 		, end(e)
 		, subs{0,0}
+		, data(p)
 	{
 	}
 
@@ -94,17 +96,36 @@ struct Node {
 };
 // Should I improve padding by inlining IP into Node? Or use attr packed
 
-using Node4 = Node<IP>;
+
+// this is quick-n-dirty prototype of fast linear allocator (stack allocator)
+// Node is a POD and never deallocated, so simple page-based memory pool
+// would be OK.
+template <class IP>
+class PoolAlloc {
+public:
+	trie::Node<IP>* createNode(const IP& i, int b, int e, Payload* p) {
+		buf.emplace_back(i, b, e, p);
+		return &buf.back();
+	}
+	trie::Node<IP>* createNode(const trie::Node<IP>& c) {
+		buf.push_back(c);
+		return &buf.back();
+	}
+private:
+	std::deque<typename trie::Node<IP>> buf;
+};
+
 
 template <class IP>
-class Radix {
+class Radix : PoolAlloc<IP> {
 public:
-    Node<IP>* insert(const IP& x);
+    Node<IP>* insert(const IP& x, Payload* payload);
     Node<IP>* lookup(const IP& x);
+    using PoolAlloc<IP>::createNode;
 
     Node<IP> root;
 
-
+public:
 #ifdef IPLOG_SELFTEST
 	void selfTest_add(const std::string& ip) { all.emplace_back(ip); }
 	void selfTest_run();
@@ -117,8 +138,9 @@ public:
 
 };
 
+
 template<typename IP>
-trie::Node<IP>* Radix<IP>::insert(const IP& x)
+trie::Node<IP>* Radix<IP>::insert(const IP& x, Payload* payload)
 {
 	auto c = &root;  // current node, start from root
 	Node<IP>* parent = nullptr;
@@ -134,10 +156,11 @@ trie::Node<IP>* Radix<IP>::insert(const IP& x)
 				// Don't create empty split; c->end > c->size so there is a tail somewhere - use it
 				// just replace IP data
 				c->ip = x;
+				c->data = payload;
 				return c;
 			}
 			// insert x right before node
-			auto n = new Node<IP>(x, c->begin, prefix);
+			auto n = createNode(x, c->begin, prefix, payload);
 			c->begin = prefix;
 			n->setChild(c);
 			assert(parent != nullptr);
@@ -148,12 +171,12 @@ trie::Node<IP>* Radix<IP>::insert(const IP& x)
 		// else insert after
 		if (prefix < c->end) {
 			//  Split at prefix position;
-			auto n0 = new Node<IP>(*c);  //  = node[pos:] May remove unused bytes from IP but should i care?
+			auto n0 = createNode(*c);  //  = node[pos:] May remove unused bytes from IP but should i care?
 			c->end = prefix;         //  = node[0:pos] Truncate
 			n0->begin = prefix;
 			c->setChild(n0);         // place tail into chain
 
-			auto n = new Node<IP>(x, prefix, x.size());
+			auto n = createNode(x, prefix, x.size(), payload);
 
 			// Let's check that __both__ children actually updated
 			assert(bit(n0->addr(), n0->begin) != bit(n->addr(), n->begin));
@@ -165,7 +188,7 @@ trie::Node<IP>* Radix<IP>::insert(const IP& x)
 		assert(prefix == c->end);
 		Node<IP>** next = &c->subs[ bit(x.addr(), prefix) ];
 		if (*next == nullptr) {
-			*next = new Node<IP>(x, prefix, x.size());
+			*next = createNode(x, prefix, x.size(), payload);
 			return *next;
 		} else {
 			// else dive deeper
@@ -238,7 +261,7 @@ void trie::Radix<IP>::selfTest_run()
 
 void outline(trie::Node<IP>* p, int level = 0);
 
-void walk(const trie::Node4* p, int level = 0);
+void walk(const trie::Node<IP>* p, int level = 0);
 void walk(const trie::Node<IPv6>* p, int level = 0);
 
 template<typename IP>

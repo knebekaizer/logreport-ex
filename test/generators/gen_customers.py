@@ -17,9 +17,11 @@ N_SUBNETS = 2 * N_CUSTOMERS
 
 # generate customers set
 
-words = open('nouns').read().split()
+import nouns
+words = nouns.words # open('nouns').read().split()
 customers_set = set();
-subnets = set()
+subnets4 = set()
+subnets6 = set()
 
 
 #random.seed(1)   # Make the test repeatable
@@ -46,8 +48,8 @@ def rand_v4():
 
 
 def rand_v6():
-    if subnets and getrandbits(1):
-        network = random.sample(subnets, 1)[0]
+    if subnets6 and getrandbits(1):
+        network = random.sample(subnets6, 1)[0]
         if network.prefixlen < 127:
             subnet_addr = IPv6Address(network.network_address + getrandbits(network.max_prefixlen - network.prefixlen))
             subnet_mask = randrange(network.prefixlen + 1, 128)
@@ -59,6 +61,10 @@ def rand_network():
     while True:
         generator = random.choice([rand_v4, rand_v6])
         ip = generator()
+        if ip.version == 4:
+            subnets = subnets4
+        else:
+            subnets = subnets6
         if ip.is_global and ip not in subnets:
             subnets.add(ip)
             return ip

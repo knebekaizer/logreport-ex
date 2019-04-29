@@ -9,3 +9,7 @@ unclear or possibly inconsistent requirements:
 However, the example contains lower case letters as well as space and dash. 
     * Allowed characters are: [A-Za-z\-_]
     * Customer ID is case-insensitive
+    
+Testing
+-------
+There is a number of unit tests as well as built-in selftest.

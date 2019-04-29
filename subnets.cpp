@@ -35,7 +35,7 @@ IP::IP(string s)
 	if (pos != string::npos) {
 		const char* p = s.c_str();
 		char* e = 0;
-		bits = strtol(p + pos + 1, &e, 10); /// @todo check format: any extra symbols
+		bits = strtol(p + pos + 1, &e, 10);
 		if (bits == 0 || bits > addr_size || e != p + s.size()) {
 			throw std::invalid_argument("Invalid network mask: " + s);
 		}
@@ -58,7 +58,7 @@ IPv6::IPv6(string s)
 	if (pos != string::npos) {
 		const char* p = s.c_str();
 		char* e = 0;
-		bits = strtol(p + pos + 1, &e, 10); /// @todo check format: any extra symbols
+		bits = strtol(p + pos + 1, &e, 10);
 		if (bits == 0 || bits > addr_size || e != p + s.size()) {
 			throw std::invalid_argument("Invalid network mask: " + s);
 		}

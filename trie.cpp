@@ -15,7 +15,7 @@ using namespace trie;
 
 
 
-void outline(trie::Node4* p, int level)
+void outline(trie::Node<IP>* p, int level)
 {
     if (!p) {
         std::cout << std::string(level, '\t') << 0 << std::endl;
@@ -49,7 +49,7 @@ void walk(const trie::Node<IP>* p, int level, function f)
     }
 }
 
-void walk(const trie::Node4* p, int level) {
+void walk(const trie::Node<IP>* p, int level) {
 	walk(p, level, [](auto p, int level){ std::cout << std::string(level, '\t') << *p << std::endl; });
 }
 
