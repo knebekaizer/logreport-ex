@@ -57,7 +57,7 @@ def rand_v6():
 
 def rand_network():
     while True:
-        generator = rand_v6 # choice([rand_v4, rand_v6])
+        generator = random.choice([rand_v4, rand_v6])
         ip = generator()
         if ip.is_global and ip not in subnets:
             subnets.add(ip)

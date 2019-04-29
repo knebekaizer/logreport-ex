@@ -13,12 +13,12 @@ set(SOURCE_FILES
         trie.cpp
     #    net/radix.c
     #    cust_db.cpp cust_db.h report.cpp report.h subnets.cpp subnets.h
-)
+        IpSummary.cpp IpSummary.h)
 
-add_executable(iplog ${SOURCE_FILES} )
-add_executable(iplog_SELFTEST ${SOURCE_FILES} )
+add_executable(iplog ${SOURCE_FILES} IpSummary.cpp IpSummary.h)
+add_executable(iplog_SELFTEST ${SOURCE_FILES} IpSummary.cpp IpSummary.h)
 
-add_executable(iplog_ut ${SOURCE_FILES})
+add_executable(iplog_ut ${SOURCE_FILES} IpSummary.cpp IpSummary.h)
 
 target_compile_definitions(iplog PRIVATE
 #        DEF_LOG_LEVEL=LOG_LEVEL::warn

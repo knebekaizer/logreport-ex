@@ -33,6 +33,8 @@ def rand_u64():
         if i < 2**64: return i
 
 for k in range(LOG_SIZE):
-#    ip = rand_v4()
-    ip = rand_v6()
+    if randrange(2):
+        ip = rand_v4()
+    else:
+        ip = rand_v6()
     print( "%s %s" % (ip, rand_u64()) )

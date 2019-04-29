@@ -131,7 +131,6 @@ std::ostream& operator<<(std::ostream& os, const IP& ip)
 
 
 #ifdef UT_CATCH
-#define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
 #include <cstdlib>

@@ -8,7 +8,7 @@ from ipaddress import IPv4Address, IPv6Address, ip_network
 
 registry = []
 
-for line in open("test/data/c3_v6.txt"):
+for line in open(sys.argv[1]):
     name, addr = line.split()
     registry.append( (name, ip_network(addr)) )
 
@@ -27,7 +27,7 @@ for line in sys.stdin:
     ip = ip_network(addr)
     best = None
     for pair in registry:
-        if pair[1].supernet_of(ip):
+        if pair[1].version == ip.version and pair[1].supernet_of(ip):
             if not best or best[1].supernet_of(pair[1]):
                 best = pair
     if best:
