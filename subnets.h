@@ -63,12 +63,14 @@ public:
 private:
 	void parse(const std::string& s);
 
-	AddrT addr_ = {0, 0};
+	AddrT addr_ = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	MaskT bits = addr_size;  ///< network mask length
 };
 
-
+std::ostream& operator<<(std::ostream& os, const IP& ip);
 std::ostream& operator<<(std::ostream& os, const IPv6& ip);
+
+
 
 
 /// @return 0 or 1 only (nefer 0b100).

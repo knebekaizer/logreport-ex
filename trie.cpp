@@ -27,10 +27,9 @@ void outline(trie::Node4* p, int level)
     outline(p->subs[1], level+1);
 }
 
-static void walk(const trie::Node4* p, int level = 0);
 
-template<class function>
-void walk(const trie::Node4* p, int level, function f)
+template<class IP, class function>
+void walk(const trie::Node<IP>* p, int level, function f)
 {
     if (!p) {
         return;
@@ -50,22 +49,12 @@ void walk(const trie::Node4* p, int level, function f)
     }
 }
 
-static void walk(const trie::Node4* p, int level) {
+void walk(const trie::Node4* p, int level) {
 	walk(p, level, [](auto p, int level){ std::cout << std::string(level, '\t') << *p << std::endl; });
 }
 
-template<typename IP>
-std::ostream& operator<<(std::ostream& os, const Radix<IP>& trie) {
-//	walk(&trie.root, 0, [](auto p, int level){ std::cout << std::string(level, '\t') << *p << std::endl; });
-	walk(&trie.root);
-	return os;
-}
-
-
-std::ostream& operator<<(std::ostream& os, const trie::Node4& n)
-{
-    os << n.ip << "-" << (int)n.begin << ":" << (int)n.end;
-    return os;
+void walk(const trie::Node<IPv6>* p, int level) {
+	walk(p, level, [](auto p, int level){ std::cout << std::string(level, '\t') << *p << std::endl; });
 }
 
 

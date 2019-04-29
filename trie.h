@@ -44,9 +44,24 @@ inline uint8_t diffbit(uint32_t a1, uint32_t a2)
 	int32_t y = a1 ^ a2; // use sign bit
 	uint8_t b = 0;
 	for ( ; b < 32; ++b) {
-		if ((y << b) < 0) break;
+		if (int32_t(y << b) < 0) break;
 	}
 	return b;
+}
+
+/// @return 0 or 1 only (nefer 0b100).
+inline uint8_t diffbit(IPv6::AddrT a1, IPv6::AddrT a2)
+{
+	for (int i=0; i<sizeof(IPv6::AddrT); ++i) {
+		int8_t y = a1[i] ^ a2[i];
+		if (y) {
+			for (uint8_t b = 0; b < 8; ++b) {
+				if (int8_t(y << b) < 0)
+					return i * 8 + b;
+			}
+		}
+	}
+	return IPv6::addr_size;
 }
 
 namespace trie {
@@ -106,11 +121,11 @@ template<typename IP>
 trie::Node<IP>* Radix<IP>::insert(const IP& x)
 {
 	auto c = &root;  // current node, start from root
-	Node4* parent = nullptr;
+	Node<IP>* parent = nullptr;
 	while (1) {
 		assert(c != nullptr); // better than while(c) as it makes assumption clearer
 		auto prefix = std::min(c->end, std::min(x.size(),
-		                                        diffbit(c->addr(), x.addr())));  // in [ c.begin, min(c.end, x.size) )
+				diffbit(c->addr(), x.addr())));  // in [ c.begin, min(c.end, x.size) )
 		assert(prefix > c->begin || c == &root); // for any node but root. Root may have zero prefix
 
 		if (prefix == x.size()) {
@@ -122,7 +137,7 @@ trie::Node<IP>* Radix<IP>::insert(const IP& x)
 				return c;
 			}
 			// insert x right before node
-			auto n = new Node4(x, c->begin, prefix);
+			auto n = new Node<IP>(x, c->begin, prefix);
 			c->begin = prefix;
 			n->setChild(c);
 			assert(parent != nullptr);
@@ -133,12 +148,12 @@ trie::Node<IP>* Radix<IP>::insert(const IP& x)
 		// else insert after
 		if (prefix < c->end) {
 			//  Split at prefix position;
-			auto n0 = new Node4(*c);  //  = node[pos:] May remove unused bytes from IP but should i care?
+			auto n0 = new Node<IP>(*c);  //  = node[pos:] May remove unused bytes from IP but should i care?
 			c->end = prefix;         //  = node[0:pos] Truncate
 			n0->begin = prefix;
 			c->setChild(n0);         // place tail into chain
 
-			auto n = new Node4(x, prefix, x.size());
+			auto n = new Node<IP>(x, prefix, x.size());
 
 			// Let's check that __both__ children actually updated
 			assert(bit(n0->addr(), n0->begin) != bit(n->addr(), n->begin));
@@ -148,9 +163,9 @@ trie::Node<IP>* Radix<IP>::insert(const IP& x)
 		}
 
 		assert(prefix == c->end);
-		Node4** next = &c->subs[ bit(x.addr(), prefix) ];
+		Node<IP>** next = &c->subs[ bit(x.addr(), prefix) ];
 		if (*next == nullptr) {
-			*next = new Node4(x, prefix, x.size());
+			*next = new Node<IP>(x, prefix, x.size());
 			return *next;
 		} else {
 			// else dive deeper
@@ -164,16 +179,14 @@ trie::Node<IP>* Radix<IP>::insert(const IP& x)
 template<typename IP>
 trie::Node<IP>* Radix<IP>::lookup(const IP &x)
 {
-	trie::Node4* c = &root;  // current node, start from root
-	trie::Node4* best = &root;
+	trie::Node<IP>* c = &root;  // current node, start from root
+	trie::Node<IP>* best = &root;
 	while (1) {
-//Trace2(*c, x);
 		assert(c != nullptr); // better than while(c) as it makes assumption clearer
 
 		auto prefix = std::min(c->end, std::min(x.size(),
 		                                        diffbit(c->addr(), x.addr())));  // in [ c.begin, min(c.end, x.size) )
 
-//Trace2((int)prefix, (int)c->end);
 		if (prefix == x.size()) {
 			if (c->size() == c->end) {
 				best = c;
@@ -187,7 +200,6 @@ trie::Node<IP>* Radix<IP>::lookup(const IP &x)
 			best = c;
 		}
 
-//Trace2(x, bit(x.addr, c->end));
 		c = c->subs[bit(x.addr(), c->end)];
 		if (!c) {
 			return best; // found
@@ -224,19 +236,25 @@ void trie::Radix<IP>::selfTest_run()
 } // namespace trie;
 
 
-void outline(trie::Node4* p, int level = 0);
+void outline(trie::Node<IP>* p, int level = 0);
 
+void walk(const trie::Node4* p, int level = 0);
+void walk(const trie::Node<IPv6>* p, int level = 0);
 
-inline
-std::ostream& operator<<(std::ostream& os, const IP& ip)
-{
-	auto a = ip.addr();
-    os << (a>>24) << '.' << ((a>>16) & 0xff) << '.' << ((a>>8) & 0xff) << '.' << (a & 0xff) << '/' << (int)ip.size();
-    return os;
+template<typename IP>
+std::ostream& operator<<(std::ostream& os, const trie::Radix<IP>& trie) {
+//	walk(&trie.root, 0, [](auto p, int level){ std::cout << std::string(level, '\t') << *p << std::endl; });
+	walk(&trie.root);
+	return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const trie::Node4& ip);
-std::ostream& operator<<(std::ostream& os, const trie::Radix<IP>& trie);
+
+template<typename IP>
+std::ostream& operator<<(std::ostream& os, const trie::Node<IP>& n)
+{
+	os << n.ip << "-" << (int)n.begin << ":" << (int)n.end;
+	return os;
+}
 
 
 

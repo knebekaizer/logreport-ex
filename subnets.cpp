@@ -121,6 +121,14 @@ std::ostream& operator<<(std::ostream& os, const IPv6& ip)
 }
 
 
+inline
+std::ostream& operator<<(std::ostream& os, const IP& ip)
+{
+	auto a = ip.addr();
+	os << (a>>24) << '.' << ((a>>16) & 0xff) << '.' << ((a>>8) & 0xff) << '.' << (a & 0xff) << '/' << (int)ip.size();
+	return os;
+}
+
 
 #ifdef UT_CATCH
 #define CATCH_CONFIG_MAIN

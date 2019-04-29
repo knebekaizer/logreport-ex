@@ -74,7 +74,7 @@ public:
 	std::set<RegElem, RegElem::less>  registry;
 
 	trie::Radix<IP> trie;
-//	trie::Radix trie_v6;
+	trie::Radix<IPv6> trie_v6;
 
 	Payload unknown;
 
@@ -104,9 +104,11 @@ public:
 
 int IPRegistry::load(istream& is)
 {
-    string id; // customer id
+	TraceX(trie_v6.root);
+	string id; // customer id
     string netw; // text repr of the network
-    trie.root.data = &unknown;
+	trie.root.data = &unknown;
+	trie_v6.root.data = &unknown;
 
 	// @todo use getline to validate input format
     while (is >> id >> netw) {
@@ -115,6 +117,9 @@ int IPRegistry::load(istream& is)
 	        if (netw.find(':') != string::npos) {
         		// ipv6
         		TraceX(IPv6(netw));
+		        auto node = trie_v6.insert(IPv6(netw));
+		        assert(node->ip == IPv6(netw));
+		        node->data = elem->data.get();
         	} else {
 		        auto node = trie.insert(IP(netw));
 		        assert(node->ip == IP(netw));
@@ -142,7 +147,7 @@ int IPRegistry::load(istream& is)
 
 //    outline(&trie.root);
 //    log_trace << trie;
-
+	log_trace << trie_v6;
     return 0;
 }
 
@@ -153,12 +158,17 @@ istream& IPRegistry::processData(istream& is)
     uint64_t bytes;
     uint64_t line = 1;
     while (is >> ip >> bytes) {
+	    if (ip.find(':') != string::npos) {
+		    auto p = trie_v6.lookup(IPv6(ip));
+		    require(p->data) << " with *p = " << *p;
+		    p->data->incr(bytes);
+	    } else {
+		    auto p = trie.lookup(IP(ip));
+		    require(p->data) << " with *p = " << *p;
+		    p->data->incr(bytes);
+	    }
 
-		auto p = trie.lookup(IP(ip));
-        require(p->data) << " with *p = " << *p;
-        p->data->incr(bytes);
-        sumCheck_accum1(bytes);
-
+		sumCheck_accum1(bytes);
         ++line;
     }
     if (!is.eof()) {
@@ -203,7 +213,7 @@ int initData(IPRegistry &ipr, const string& customersFile)
             return 1;
 
 
-        ifstream ipdata("test/data/iplog.dat");
+        ifstream ipdata("test/data/ip6log.dat");
         ipr.processData(ipdata);
 
         return 0;
