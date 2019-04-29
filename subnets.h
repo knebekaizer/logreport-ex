@@ -54,7 +54,7 @@ public:
 	using MaskT = uint8_t;
 	static constexpr auto addr_size = sizeof(AddrT) * 8;
 	static constexpr auto chunk_size = 8;
-	AddrT addr() const { return addr_; }
+	const AddrT& addr() const { return addr_; }
 	MaskT size() const { return bits; }
 
 	bool operator==(const IPv6& other) const {

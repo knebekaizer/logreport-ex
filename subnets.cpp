@@ -127,6 +127,7 @@ std::ostream& operator<<(std::ostream& os, const IPv6& ip)
 #include "catch.hpp"
 
 #include <cstdlib>
+#include <string.h>
 
 TEST_CASE( "IP.parse", "[IP]")
 {
@@ -137,8 +138,8 @@ TEST_CASE( "IP.parse", "[IP]")
 		snprintf(buf, sizeof(buf), "%d.%d.%d.%d/%d", (a >> 24) & 0xff, (a >> 16) & 0xff, (a >> 8) & 0xff, a & 0xff,
 		         bits);
 		IP ip(buf);
-		REQUIRE(ip.addr == a);
-		REQUIRE(ip.bits == bits);
+		REQUIRE(ip.addr() == a);
+		REQUIRE(ip.size() == bits);
 	}
 
 	int err_count = 0;
@@ -160,6 +161,24 @@ TEST_CASE( "IP.parse", "[IP]")
 	REQUIRE(err_count == sizeof(bad) / sizeof(*bad));
 };
 
+
+TEST_CASE( "IPv6.parse", "[IPv6]")
+{
+	uint8_t a[16] = {
+		0x2b, 0xab, 0xbe, 0x0d, 0x8b, 0x6d, 0xb4, 0xa2, 0xbe, 0xf7, 0xb9, 0x7c, 0xf7, 0x97, 0x5f, 0xc0
+	};
+	REQUIRE(memcmp(&IPv6("2bab:be0d:8b6d:b4a2:bef7:b97c:f797:5fc0/122").addr()[0], a, 16) == 0);
+
+//	load> IPv6(netw) = 2bab:be0d:8b6d:b4a2:bef7:b97c:f797:5fc0/122
+//load> IPv6(netw) = 2776:f1ab:eff9:8000::/56
+//load> IPv6(netw) = 301a:48d3:fc05:32de:8972:8c74:2dd5:6800/117
+//load> IPv6(netw) = 2bab:be0d:8b6d:b4a2:bef7:b97c:f797:5fc4/127
+//load> IPv6(netw) = 3ff0:ab45:9000::/37
+//load> IPv6(netw) = 3672:ab4a:8172:3800::/57
+
+}
+
+
 TEST_CASE( "leftmostbit", "[leftmostbit]")
 {
     REQUIRE( leftmostbit(0b1) == 31 ) ;
@@ -167,6 +186,7 @@ TEST_CASE( "leftmostbit", "[leftmostbit]")
     REQUIRE( leftmostbit(0b10000000010000000000000000000100) == 0 ) ;
 }
 
+/*
 TEST_CASE( "IP4Network.supernetOf", "[IP4Network]")
 {
     IP4Network ip("192.168.0.0", 24);
@@ -178,4 +198,5 @@ TEST_CASE( "IP4Network.supernetOf", "[IP4Network]")
     IP4Network ip2("67.5.239.0", 24);
     REQUIRE( ip2.supernetOf( IP4Network("67.5.239.16", 28) ) );
 }
+*/
 #endif // UT_CATCH

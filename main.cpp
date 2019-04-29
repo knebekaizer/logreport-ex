@@ -286,7 +286,7 @@ int main (int argc, const char * argv[])
 
 #ifdef UT_CATCH
 #include "catch.hpp"
-
+/*
 TEST_CASE( "Trie.lookup", "[Trie]")
 {
     IPRegistry ipr;
@@ -311,7 +311,7 @@ TEST_CASE( "Trie.lookup", "[Trie]")
 		REQUIRE(cond);
 	}
 }
-
+*/
 /*
 TEST_CASE( "IP4Address.lookup", "[IP4Address]")
 {
