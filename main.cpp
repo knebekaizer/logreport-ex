@@ -286,11 +286,11 @@ int main (int argc, const char * argv[])
 
 #ifdef UT_CATCH
 #include "catch.hpp"
-/*
+
 TEST_CASE( "Trie.lookup", "[Trie]")
 {
     IPRegistry ipr;
-    int rc = initData(ipr);
+    int rc = initData(ipr, "test/data/c5.txt");
     if (rc) {
     	log_error << "Initialization error";
     	exit(1);
@@ -310,8 +310,9 @@ TEST_CASE( "Trie.lookup", "[Trie]")
 		}
 		REQUIRE(cond);
 	}
+
 }
-*/
+
 /*
 TEST_CASE( "IP4Address.lookup", "[IP4Address]")
 {

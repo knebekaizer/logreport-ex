@@ -79,10 +79,21 @@ inline uint8_t leftmostbit(uint32_t x)
 {
 	int32_t y = x; // use sign bit
 	uint8_t b = 0;
-    for ( ; b < 32; ++b) {
-    	if ((y << b) < 0) break;
-    }
-    return b;
+	for ( ; b < 32; ++b) {
+		if ((y << b) < 0) break;
+	}
+	return b;
+}
+
+/// @returns Position of first different bit
+inline uint8_t diffbit(uint32_t a1, uint32_t a2)
+{
+	int32_t y = a1 ^ a2; // use sign bit
+	uint8_t b = 0;
+	for ( ; b < 32; ++b) {
+		if ((y << b) < 0) break;
+	}
+	return b;
 }
 
 
