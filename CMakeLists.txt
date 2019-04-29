@@ -21,7 +21,7 @@ add_executable(iplog_SELFTEST ${SOURCE_FILES} )
 add_executable(iplog_ut ${SOURCE_FILES})
 
 target_compile_definitions(iplog PRIVATE
-        DEF_LOG_LEVEL=LOG_LEVEL::warn
+#        DEF_LOG_LEVEL=LOG_LEVEL::warn
 )
 
 target_compile_definitions(iplog_ut PRIVATE

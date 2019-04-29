@@ -38,7 +38,7 @@ struct Node {
     int setChild(Node* node);
 
 	int size() const { return ip.size(); }
-	IP::AddrT addr() const { return ip.addr; }
+	IP::AddrT addr() const { return ip.addr(); }
 
 //	const IP* const ip;  // chain members share the same pointer to save memory
     IP ip;         // sizeof = 8 or 24 for the cost of indirection. Tune for cache line size
@@ -92,7 +92,8 @@ void outline(trie::Node* p, int level = 0);
 inline
 std::ostream& operator<<(std::ostream& os, const IP& ip)
 {
-    os << (ip.addr>>24) << '.' << ((ip.addr>>16) & 0xff) << '.' << ((ip.addr>>8) & 0xff) << '.' << (ip.addr & 0xff) << '/' << (int)ip.bits;
+	auto a = ip.addr();
+    os << (a>>24) << '.' << ((a>>16) & 0xff) << '.' << ((a>>8) & 0xff) << '.' << (a & 0xff) << '/' << (int)ip.size();
     return os;
 }
 

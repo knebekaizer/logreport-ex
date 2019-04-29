@@ -17,14 +17,14 @@ void IP::parse(const string& s)
 	if (!rc) {
 		throw std::invalid_argument("Can't convert to in_addr: " + s.substr(0, 20));
 	}
-	addr = ntohl(a);
+	addr_ = ntohl(a);
 
 	if (bits < addr_size) {
 		uint32_t mask = ~0U >> bits;
-		if (addr & mask) {
+		if (addr_ & mask) {
 			log_warn << "Invalid IP: host bit set: [" << *this <<"] Host bits are ignored";
 			//    throw std::invalid_argument("Invalid IP: host bits are set");
-			addr &= ~mask;
+			addr_ &= ~mask;
 		}
 	}
 }
@@ -51,6 +51,75 @@ IP::IP(string s, int b)
 {
 	parse(s);
 }
+
+IPv6::IPv6(string s)
+{
+	auto pos = s.find('/');
+	if (pos != string::npos) {
+		const char* p = s.c_str();
+		char* e = 0;
+		bits = strtol(p + pos + 1, &e, 10); /// @todo check format: any extra symbols
+		if (bits == 0 || bits > addr_size || e != p + s.size()) {
+			throw std::invalid_argument("Invalid network mask: " + s);
+		}
+		s.erase(pos);
+	}
+	// 	bits defaulted to addr_size in class declaration
+
+	parse(s);
+}
+
+void IPv6::parse(const string& s)
+{
+//	assert(sizeof(addr_) == addr_size / 8;
+	uint8_t* a = (uint8_t*)&addr_;
+	auto rc = inet_pton(AF_INET6, s.c_str(), a);
+	if (!rc) {
+		throw std::invalid_argument("Can't convert to in_addr: " + s.substr(0, 20));
+	}
+
+	if (bits < addr_size) {
+		auto i = bits >> 3;
+		int err = 0;
+		if (bits & 7) {
+			uint8_t mask = 0xff >> (bits & 7);
+			if (a[i] & mask) {
+				//    throw std::invalid_argument("Invalid IP: host bits are set");
+				a[i] &= ~mask;
+				++err;
+			}
+		}
+		for (i += 1; i < addr_size>>3; ++i) {
+			if (a[i]) {
+				a[i] = 0;
+				++err;
+			}
+		}
+		if (err) {
+			log_warn << "Invalid IP: host bit set: [" << *this << "] Host bits are ignored ";
+		}
+	}
+
+//	addr_.hi = ntohll(addr_.hi);
+//	addr_.lo = ntohll(addr_.lo);
+}
+
+
+inline
+std::ostream& operator<<(std::ostream& os, const IPv6& ip)
+{
+	char buf[40];
+	auto a = ip.addr();
+	if (inet_ntop(AF_INET6, &a, buf, sizeof(buf))) {
+		os << buf;
+	} else {
+		os << "Address conversion failure";
+	}
+	if (ip.size() < IPv6::addr_size)
+		os << "/" << (int)ip.size();
+	return os;
+}
+
 
 
 #ifdef UT_CATCH

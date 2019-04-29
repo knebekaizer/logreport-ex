@@ -40,7 +40,7 @@ trie::Node* Radix::insert(const IP& x)
     Node* parent = nullptr;
     while (1) {
         assert(c != nullptr); // better than while(c) as it makes assumption clearer
-        auto prefix = std::min(c->end, std::min(x.size(), leftmostbit(c->addr() ^ x.addr)));  // in [ c.begin, min(c.end, x.size) )
+        auto prefix = std::min(c->end, std::min(x.size(), leftmostbit(c->addr() ^ x.addr())));  // in [ c.begin, min(c.end, x.size) )
         assert(prefix > c->begin || c == &root); // for any node but root. Root may have zero prefix
 
         if (prefix == x.size()) {
@@ -78,7 +78,7 @@ trie::Node* Radix::insert(const IP& x)
         }
 
         assert(prefix == c->end);
-        Node** next = &c->subs[ bit(x.addr, prefix) ];
+        Node** next = &c->subs[ bit(x.addr(), prefix) ];
         if (*next == nullptr) {
             *next = new Node(x, prefix, x.size());
             return *next;
@@ -100,7 +100,7 @@ trie::Node* Radix::lookup(const IP &x)
 		assert(c != nullptr); // better than while(c) as it makes assumption clearer
 
 		auto prefix = std::min(c->end, std::min(x.size(), leftmostbit(
-				c->addr() ^ x.addr)));  // in [ c.begin, min(c.end, x.size) )
+				c->addr() ^ x.addr())));  // in [ c.begin, min(c.end, x.size) )
 
 //Trace2((int)prefix, (int)c->end);
 		if (prefix == x.size()) {
@@ -117,7 +117,7 @@ trie::Node* Radix::lookup(const IP &x)
 		}
 
 //Trace2(x, bit(x.addr, c->end));
-		c = c->subs[bit(x.addr, c->end)];
+		c = c->subs[bit(x.addr(), c->end)];
 		if (!c) {
 			return best; // found
 		}

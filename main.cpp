@@ -106,26 +106,20 @@ int IPRegistry::load(istream& is)
 {
     string id; // customer id
     string netw; // text repr of the network
-    int bits;
     trie.root.data = &unknown;
 
 	// @todo use getline to validate input format
     while (is >> id >> netw) {
-        bits = 32;
         try {
-        	if (netw.find(':') != string::npos) {
+	        auto elem = registry.emplace(id).first;
+	        if (netw.find(':') != string::npos) {
         		// ipv6
+        		TraceX(IPv6(netw));
         	} else {
-
-		        auto elem = registry.emplace(id).first;
-
-		        IP ip(netw);
-		        auto node = trie.insert(ip);
-		        assert(node->ip == ip);
+		        auto node = trie.insert(IP(netw));
+		        assert(node->ip == IP(netw));
 		        node->data = elem->data.get();
 	        }
-
-	        //  log_trace << lines << ": " << netw << "|" << bits;
         }
         catch (std::exception& e) {
             log_error << "Bad format: line " << registry.size() + 1 << " " << e.what();
