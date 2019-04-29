@@ -9,6 +9,10 @@
 #include "trie.h"
 #include "subnets.h"
 
+
+#include <vector>
+#include <set>
+
 using namespace std;
 
 class Payload {
@@ -22,35 +26,65 @@ private:
 };
 
 struct RegElem {
-    RegElem(const string& name, const string& addr, int bits)
-        : id(name), node(std::make_unique<Node>(addr, bits)) {}
+    RegElem(const string& name)
+        : id(name)
+        , data(std::make_unique<Payload>())
+        {}
 
-    string id;
-    std::unique_ptr<Node> node;
+	struct less : std::binary_function<RegElem, RegElem, bool> {
+		bool operator()(const RegElem& x, const RegElem& y) const { return x.id < y.id; }
+	};
 
-    Payload data;
+	string id;
+    unique_ptr<Payload> data;
 };
 
-#include <vector>
+ostream& operator<<(ostream& os, const RegElem& x) {
+	return os << x.id << "\t" << x.data->data();
+}
 
-class IPRegistry : public std::vector<RegElem>
+
+template<class T>
+ostream& operator<<(ostream& os, const vector<T>& v) {
+	for (const auto& x : v) {
+		os << x << endl;
+	}
+	return os;
+}
+
+
+template<class T>
+ostream& operator<<(ostream& os, const set<T>& v) {
+	for (const auto& x : v) {
+		os << x << endl;
+	}
+	return os;
+}
+
+
+#include "err_policy.h"
+
+class IPRegistry
 {
 public:
     int load(istream& is);
     istream& processData(istream& is);
     ostream& report(ostream& os) const;
-    Tree tree;
-	trie::Radix trie;
 
-	Payload unknown; // @todo Do it better
+	std::set<RegElem, RegElem::less>  registry;
+
+	trie::Radix trie;
+	trie::Radix trie_v6;
+
+	Payload unknown;
 
 #ifdef IPLOG_SELFTEST
-	void selfTest();
 	mutable struct {
 		void accum1(uint64_t x) { sum1 += x; }
 		void accum2(uint64_t x) { sum2 += x; }
 		void validate() {
-			assert(sum1 == sum2);
+			require(sum1 == sum2) << " with sum1 = " << sum1 << "; sum2 = " << sum2;
+			log_info << "[SelfTest]  Total sum validation passed";
 		}
 	private:
 		uint64_t sum1 = 0;
@@ -60,7 +94,6 @@ public:
 	void sumCheck_accum2(uint64_t n) const { sumCheck.accum2(n); }
 	void sumCheck_validate() const { sumCheck.validate(); }
 #else
-#define selfTest()
 #define sumCheck_accum1(n)
 #define sumCheck_accum2(n)
 #define sumCheck_validate()
@@ -74,70 +107,50 @@ int IPRegistry::load(istream& is)
     string id; // customer id
     string netw; // text repr of the network
     int bits;
-    // use getline to validate input format
+    trie.root.data = &unknown;
+
+	// @todo use getline to validate input format
     while (is >> id >> netw) {
         bits = 32;
         try {
-            auto pos = netw.find('/');
-            if (pos != string::npos) {
-                bits = strtol(netw.c_str() + pos + 1, 0, 10); /// @todo check format: any extra symbols
-                if (bits == 0) {
-	                throw std::invalid_argument(netw);
-                }
-                netw.erase(pos);
-            }
-            push_back({id, netw, bits});
-            //  log_trace << lines << ": " << netw << "|" << bits;
+        	if (netw.find(':') != string::npos) {
+        		// ipv6
+        	} else {
+
+		        auto elem = registry.emplace(id).first;
+
+		        IP ip(netw);
+		        auto node = trie.insert(ip);
+		        assert(node->ip == ip);
+		        node->data = elem->data.get();
+	        }
+
+	        //  log_trace << lines << ": " << netw << "|" << bits;
         }
         catch (std::exception& e) {
-            log_error << "Bad format: line " << size() + 1 << " " << e.what();
+            log_error << "Bad format: line " << registry.size() + 1 << " " << e.what();
             is.setstate(std::ios_base::badbit);
             //    break;
         }
-
     }
-    std::sort(begin(), end(), [](const RegElem& x, const RegElem& y){ return x.id < y.id; } );
-    log_trace << "Done " << size() << " lines";
+
+//	log_trace << registry;
+
+	log_trace << "Done " << registry.size() << " lines";
     // check eof and failbit. Stop ib case of failbit but not eof, as it means the stream is heavily misformatted
     if (is.bad()) return 1;
 
-    for (auto& x : *this) {
-        tree.insert(x.node.get());
-    }
-//    log_trace << "Tree:\n" << tree;
+    //    log_trace << "Tree:\n" << tree;
 
-    for (auto& x : *this) {
-        auto node = trie.insert(IP(*x.node.get()));
-        assert(node->ip == IP(*x.node.get()));
-        node->data = &x.data;
-    }
-	trie.root.data = &unknown; // @todo dirty design
-    selfTest();
+#ifdef IPLOG_SELFTEST
+    trie.selfTest_run();
+#endif
 
 //    outline(&trie.root);
 //    log_trace << trie;
 
     return 0;
 }
-
-#ifdef IPLOG_SELFTEST
-void IPRegistry::selfTest()
-{
-	for (auto const& x : *this) {
-		IP ip(*x.node.get());
-	    auto f = trie.lookup(ip);
-	    bool cond = (f->addr() == ip.addr && f->size() == ip.size());
-	    if (!cond) {
-		    log_error << "Failed condition (f->addr() == x.addr && f->size() == x.size()) with "
-		                 "f = " << *f << "; x = " << ip;
-		//    outline(&root);
-	    }
-
-	    assert(f->addr() == ip.addr && f->size() == ip.size());
-	}
-	log_info << "Trie integrity check passed";
-}
-#endif
 
 //#define Tree
 istream& IPRegistry::processData(istream& is)
@@ -147,12 +160,9 @@ istream& IPRegistry::processData(istream& is)
     uint64_t line = 1;
     while (is >> ip >> bytes) {
 
-        Node* n = tree.lookup(ip);
-        n->incr(bytes);
-
-        Payload* p = trie.lookup(IP(ip))->data;
-        assert(p);
-        p->incr(bytes);
+		auto p = trie.lookup(IP(ip));
+        require(p->data) << " with *p = " << *p;
+        p->data->incr(bytes);
         sumCheck_accum1(bytes);
 
         ++line;
@@ -166,30 +176,18 @@ istream& IPRegistry::processData(istream& is)
 
 ostream& IPRegistry::report(ostream& os) const
 {
-    uint64_t sum = 0;
     string last;
-    for (auto& x : *this) {
-        if (last != x.id) {
-            if (!last.empty() && sum) {
-	            os << last << "\t" << sum << endl;
-            }
-            sum = 0;
-            last = x.id;
-        }
-//#ifdef Tree
-//        sum += x.node->data_;
-//#else
-        sum += x.data.data();
-	    sumCheck_accum2(x.data.data());
-//#endif
-    }
-    if (!last.empty() && sum) {
-	    os << last << "\t" << sum << endl;
+    for (auto& x : registry) {
+	    if (x.data->data()) {
+		    os << x << std::endl;
+		    sumCheck_accum2(x.data->data());
+	    }
     }
 
     assert(trie.root.data);
     if (trie.root.data->data()) {
 	    os << "Unknown" << "\t" << trie.root.data->data() << endl;
+	    sumCheck_accum2(trie.root.data->data());
     }
     sumCheck_validate();
 
@@ -197,10 +195,9 @@ ostream& IPRegistry::report(ostream& os) const
 }
 
 
-int initData(IPRegistry &ipr)
+int initData(IPRegistry &ipr, const string& customersFile)
 {
     try {
-    	string customersFile = "test/data/c5.txt";
         ifstream is(customersFile);
         if (!is) {
             log_error << "Open error: " << customersFile;
@@ -218,7 +215,7 @@ int initData(IPRegistry &ipr)
         return 0;
     }
     catch (std::exception& e) {
-        log_error << e.what();
+        std::cerr << e.what() << std::endl;
     }
     catch (...) {
         log_fatal << "Uncaught exception";
@@ -228,31 +225,25 @@ int initData(IPRegistry &ipr)
 
 class IpSummary {
 public:
+	IpSummary(int argc, const char * argv[]) { argsParser(argc, argv); }
 	void initData(istream& is);
 	void processLog(istream& is);
 	void printReport(ostream& os);
+//private:
+	void argsParser(int argc, const char * argv[]);
+	vector<std::string> args;
 };
 
-template<class T>
-ostream& operator<<(ostream& os, const vector<T>& v) {
-	for (auto& x : v) {
-		os << x << endl;
-	}
-	return os;
-}
 
-// value semantics for vector is OK
-vector<string> argsParser(int argc, const char * argv[])
+void IpSummary::argsParser(int argc, const char * argv[])
 {
-	vector<string> ret;
-
 	if (argc > 1 && argc < 5) {
 		int k = 1;
 		for ( ; k < argc; ++k) {
-			ret.emplace_back(argv[k]);
+			args.emplace_back(argv[k]);
 		}
 		for ( ; k < 4; ++k) {
-			ret.emplace_back("-");
+			args.emplace_back("-");
 		}
 	} else {
 		cout << "Usage: " << argv[0] << " <input_1> <input_2> <output>" << endl;
@@ -264,27 +255,37 @@ vector<string> argsParser(int argc, const char * argv[])
 		     "  output:  Traffic summary by customer ID\n"
 		     << endl;
 	}
-
-	return ret;
 }
 
 #ifndef UT_CATCH
 int main (int argc, const char * argv[])
 {
-	auto args = argsParser(argc, argv);
-	TraceX(argc);
-	TraceX(args);
+	try {
+		IpSummary ips(argc, argv);
 
-	if (args.empty())
-		return 1;
+		if (ips.args.empty())
+			return 1;
 
-    IPRegistry ipr;
-    auto rc = initData(ipr);
+		IPRegistry ipr;
+		auto err = initData(ipr, ips.args[0]);
+		if (err) return err;
 
-//    ofstream os("trie_report_5.txt");
-    ipr.report(cout);
+		if (ips.args[2] == "-") {
+			ipr.report(cout);
+		} else {
+			ofstream out(ips.args[2]);
+			if (!out) {
+				throw std::runtime_error("File open error: " + ips.args[2]);
+			}
+			ipr.report(out);
+		}
+		return err;
+	}
+	catch (std::exception& e) {
+		std::cerr << e.what() << std::endl;
+		return -1;
+	}
 
-    return rc;
 }
 #endif // CATCH_CONFIG_MAIN
 

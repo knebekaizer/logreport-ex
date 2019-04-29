@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "trace.h"
+#include "err_policy.h"
 
 using namespace trie;
 
@@ -122,6 +123,19 @@ trie::Node* Radix::lookup(const IP &x)
 		}
 	}
 }
+
+#ifdef IPLOG_SELFTEST
+void trie::Radix::selfTest_run()
+{
+	for (auto const& x : all) {
+		IP ip(x);
+	    auto f = lookup(ip);
+	    require(f->ip == ip) << " with f = " << *f << "; x = " << ip;
+	    assert(f->ip == ip);
+	}
+	log_info << "[Trie::SelfTest] Trie integrity check passed";
+}
+#endif
 
 
 

@@ -8,6 +8,9 @@
 #include <cstdint>
 #include <iostream>
 
+#ifdef IPLOG_SELFTEST
+#include <vector>
+#endif
 
 
 namespace trie {
@@ -54,6 +57,18 @@ public:
     Node* lookup(const IP& x);
 
     Node root;
+
+
+#ifdef IPLOG_SELFTEST
+	void selfTest_add(const std::string& ip) { all.emplace_back(ip); }
+	void selfTest_run();
+
+	mutable std::vector<std::string> all;
+#else
+	#define selfTest_add(...)
+	#define selfTest_run()
+#endif
+
 };
 
 } // namespace trie;
