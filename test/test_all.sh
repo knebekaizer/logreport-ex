@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 
+CUSTOMERS_SIZE=${1:-1000}
+LOG_SIZE=${2:-10000}
+echo "CUSTOMERS_SIZE = $CUSTOMERS_SIZE"
+echo "LOG_SIZE = $LOG_SIZE"
+
 echo "Generate customer DB..."
-generators/gen_customers.py 10000 > data/cust_db.txt
+generators/gen_customers.py $CUSTOMERS_SIZE > data/cust_db.txt
 echo "Generated `wc -l data/cust_db.txt` lines"
 
 echo "Generate IP log..."
-generators/gen_log.py 100000 > data/iplog.txt
+generators/gen_log.py $LOG_SIZE > data/iplog.txt
 echo "Generated `wc -l data/iplog.txt` lines"
 
 echo "Run iplog..."
