@@ -42,11 +42,28 @@ public:
     Tree tree;
 	trie::Radix trie;
 
+	Payload unknown; // @todo Do it better
 
 #ifdef IPLOG_SELFTEST
 	void selfTest();
+	mutable struct {
+		void accum1(uint64_t x) { sum1 += x; }
+		void accum2(uint64_t x) { sum2 += x; }
+		void validate() {
+			assert(sum1 == sum2);
+		}
+	private:
+		uint64_t sum1 = 0;
+		uint64_t sum2 = 0;
+	} sumCheck;
+	void sumCheck_accum1(uint64_t n) const { sumCheck.accum1(n); }
+	void sumCheck_accum2(uint64_t n) const { sumCheck.accum2(n); }
+	void sumCheck_validate() const { sumCheck.validate(); }
 #else
 #define selfTest()
+#define sumCheck_accum1(n)
+#define sumCheck_accum2(n)
+#define sumCheck_validate()
 #endif
 
 };
@@ -94,7 +111,7 @@ int IPRegistry::load(istream& is)
         assert(node->ip == IP(*x.node.get()));
         node->data = &x.data;
     }
-
+	trie.root.data = &unknown; // @todo dirty design
     selfTest();
 
 //    outline(&trie.root);
@@ -136,6 +153,7 @@ istream& IPRegistry::processData(istream& is)
         Payload* p = trie.lookup(IP(ip))->data;
         assert(p);
         p->incr(bytes);
+        sumCheck_accum1(bytes);
 
         ++line;
     }
@@ -152,8 +170,9 @@ ostream& IPRegistry::report(ostream& os) const
     string last;
     for (auto& x : *this) {
         if (last != x.id) {
-            if (!last.empty() && sum)
-                os << last << "\t" << sum << endl;
+            if (!last.empty() && sum) {
+	            os << last << "\t" << sum << endl;
+            }
             sum = 0;
             last = x.id;
         }
@@ -161,12 +180,18 @@ ostream& IPRegistry::report(ostream& os) const
 //        sum += x.node->data_;
 //#else
         sum += x.data.data();
+	    sumCheck_accum2(x.data.data());
 //#endif
     }
-    if (!last.empty() && sum)
-        os << last << "\t" << sum << endl;
+    if (!last.empty() && sum) {
+	    os << last << "\t" << sum << endl;
+    }
 
-    os << "Unknown" << "\t" << tree.data_ << endl;
+    assert(trie.root.data);
+    if (trie.root.data->data()) {
+	    os << "Unknown" << "\t" << trie.root.data->data() << endl;
+    }
+    sumCheck_validate();
 
     return os;
 }
@@ -208,9 +233,51 @@ public:
 	void printReport(ostream& os);
 };
 
-#ifndef UT_CATCH
-int main()
+template<class T>
+ostream& operator<<(ostream& os, const vector<T>& v) {
+	for (auto& x : v) {
+		os << x << endl;
+	}
+	return os;
+}
+
+// value semantics for vector is OK
+vector<string> argsParser(int argc, const char * argv[])
 {
+	vector<string> ret;
+
+	if (argc > 1 && argc < 5) {
+		int k = 1;
+		for ( ; k < argc; ++k) {
+			ret.emplace_back(argv[k]);
+		}
+		for ( ; k < 4; ++k) {
+			ret.emplace_back("-");
+		}
+	} else {
+		cout << "Usage: " << argv[0] << " <input_1> <input_2> <output>" << endl;
+		cout <<
+		     "Parameters are file names or \"-\" for standart input or output,"
+		     "  last two may be omitted.\n"
+		     "  input_1: Customers database\n"
+		     "  input_2: IP log\n"
+		     "  output:  Traffic summary by customer ID\n"
+		     << endl;
+	}
+
+	return ret;
+}
+
+#ifndef UT_CATCH
+int main (int argc, const char * argv[])
+{
+	auto args = argsParser(argc, argv);
+	TraceX(argc);
+	TraceX(args);
+
+	if (args.empty())
+		return 1;
+
     IPRegistry ipr;
     auto rc = initData(ipr);
 

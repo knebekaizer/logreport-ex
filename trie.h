@@ -43,7 +43,7 @@ struct Node {
     uint8_t end = 8 * sizeof(IP::AddrT);
     Node *subs[2] = {0,0};    // struct { Node *zero, *one; } subs;
 
-	Payload* data;
+	Payload* data = nullptr;
 };
 // Should I improve padding by inlining IP into Node? Or use attr packed
 
