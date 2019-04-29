@@ -13,16 +13,20 @@
 #include <vector>
 #include <set>
 
+#include <boost/multiprecision/cpp_int.hpp>
+namespace mp = boost::multiprecision;
+
+
 using namespace std;
 
 class Payload {
 public:
-	using CountT = uint64_t;
+	using CountT = mp::uint128_t;
 	void incr(uint64_t x) { data_ += x; }
 	CountT data() const { return data_; }
 //	operator const CountT() const { return data(); }
 private:
-	uint64_t data_ = 0;
+	CountT data_ = 0;
 };
 
 struct RegElem {
@@ -80,18 +84,18 @@ public:
 
 #ifdef IPLOG_SELFTEST
 	mutable struct {
-		void accum1(uint64_t x) { sum1 += x; }
-		void accum2(uint64_t x) { sum2 += x; }
+		void accum1(Payload::CountT x) { sum1 += x; }
+		void accum2(Payload::CountT x) { sum2 += x; }
 		void validate() {
 			require(sum1 == sum2) << " with sum1 = " << sum1 << "; sum2 = " << sum2;
 			log_info << "[SelfTest]  Total sum validation passed";
 		}
 	private:
-		uint64_t sum1 = 0;
-		uint64_t sum2 = 0;
+		Payload::CountT sum1 = 0;
+		Payload::CountT sum2 = 0;
 	} sumCheck;
-	void sumCheck_accum1(uint64_t n) const { sumCheck.accum1(n); }
-	void sumCheck_accum2(uint64_t n) const { sumCheck.accum2(n); }
+	void sumCheck_accum1(Payload::CountT n) const { sumCheck.accum1(n); }
+	void sumCheck_accum2(Payload::CountT n) const { sumCheck.accum2(n); }
 	void sumCheck_validate() const { sumCheck.validate(); }
 #else
 #define sumCheck_accum1(n)
@@ -261,9 +265,12 @@ void IpSummary::argsParser(int argc, const char * argv[])
 	}
 }
 
+
+
 #ifndef UT_CATCH
 int main (int argc, const char * argv[])
 {
+
 	try {
 		IpSummary ips(argc, argv);
 

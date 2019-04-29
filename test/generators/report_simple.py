@@ -8,7 +8,7 @@ from ipaddress import IPv4Address, IPv6Address, ip_network
 
 registry = []
 
-for line in open("c3.txt"):
+for line in open("test/data/c3_v6.txt"):
     name, addr = line.split()
     registry.append( (name, ip_network(addr)) )
 
