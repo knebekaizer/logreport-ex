@@ -4,6 +4,7 @@
 #define IPLOG_TEST_SUBNETS_H
 
 #include <cstdint>
+#include <cassert>
 #include <set>
 
 #include <iostream>

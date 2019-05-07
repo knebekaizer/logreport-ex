@@ -79,7 +79,7 @@ void IPv6::parse(const string& s)
 	}
 
 	if (bits < addr_size) {
-		auto i = bits >> 3;
+		unsigned int i = bits >> 3;
 		int err = 0;
 		if (bits & 7) {
 			uint8_t mask = 0xff >> (bits & 7);

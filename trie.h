@@ -8,6 +8,7 @@
 #include "trace.h"
 
 #include <cstdint>
+#include <cassert>
 #include <iostream>
 #include <deque>
 
@@ -53,7 +54,7 @@ inline uint8_t diffbit(uint32_t a1, uint32_t a2)
 /// @return 0 or 1 only (nefer 0b100).
 inline uint8_t diffbit(IPv6::AddrT a1, IPv6::AddrT a2)
 {
-	for (int i=0; i<sizeof(IPv6::AddrT); ++i) {
+	for (unsigned int i=0; i!=sizeof(IPv6::AddrT); ++i) {
 		int8_t y = a1[i] ^ a2[i];
 		if (y) {
 			for (uint8_t b = 0; b < 8; ++b) {
