@@ -47,17 +47,13 @@ struct RegElem {
 class IpSummary
 {
 public:
-	IpSummary(int argc, const char * argv[]) { argsParser(argc, argv); }
-	int initData();
-	int processLog();
-	int printReport();
+	int initData(std::string file);
+	int processLog(std::string file = "-");
+	int printReport(std::string file = "-");
 
-	int run();
+	int run(std::vector<std::string> args);
 
 private:
-	int argsParser(int argc, const char * argv[]);
-	std::vector<std::string> args;
-
 	int load(std::istream& is);
 	int processData(std::istream& is);
 	int report(std::ostream& os) const;

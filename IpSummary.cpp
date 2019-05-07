@@ -15,6 +15,7 @@
 #include <memory> // make_unique
 #include <vector>
 #include <set>
+#include <chrono>
 
 
 using namespace std;
@@ -41,6 +42,17 @@ ostream& operator<<(ostream& os, const set<T>& v) {
 	return os;
 }
 
+
+using namespace std::chrono;
+class TimeHelper {
+public:
+	using time_t = time_point<high_resolution_clock>;
+	TimeHelper() : start(high_resolution_clock::now()) {}
+	auto operator()() const { return high_resolution_clock::now() - start; }
+	auto mksec() const { return duration_cast<microseconds>((*this)()).count(); }
+private:
+	time_t start;
+};
 
 
 int IpSummary::load(istream& is)
@@ -138,58 +150,65 @@ int IpSummary::report(ostream& os) const
 }
 
 
-int IpSummary::initData()
+int IpSummary::initData(const string file)
 {
+	TimeHelper time;
 	int err = 0;
-	if (args[0] == "-") {
+	if (file == "-") {
 		err = load(std::cin);
 	} else {
-		ifstream is(args[0]);
+		ifstream is(file);
 		if (!is) {
-			throw std::runtime_error("Open error: " + args[0]);
+			throw std::runtime_error("Open error: " + file);
 		}
 		err = load(is);
 	}
+	log_info << "Time elapsed: " << time.mksec() << " mksec";
 
 	return err;
 };
 
-int IpSummary::processLog()
+int IpSummary::processLog(const string file)
 {
+	TimeHelper time;
 	int err = 0;
-	if (args[1] == "-") {
+	if (file == "-") {
 		err = processData(std::cin);
 	} else {
-		ifstream is(args[1]);
+		ifstream is(file);
 		if (!is) {
-			throw std::runtime_error("Open error: " + args[1]);
+			throw std::runtime_error("Open error: " + file);
 		}
 		err = processData(is);
 	}
+	log_info << "Time elapsed: " << time.mksec() << " mksec";
+
 	return err;
 };
 
-int IpSummary::printReport()
+int IpSummary::printReport(const string file)
 {
+	TimeHelper time;
 	int err = 0;
-	if (args[2] == "-") {
+	if (file == "-") {
 		err = report(std::cout);
 	} else {
-		ofstream os(args[1]);
+		ofstream os(file);
 		if (!os) {
-			throw std::runtime_error("Open error: " + args[1]);
+			throw std::runtime_error("Open error: " + file);
 		}
 		err = report(os);
 	}
+	log_info << "Time elapsed: " << time.mksec() << " mksec";
 	return err;
 };
 
-int IpSummary::run()
+int IpSummary::run(std::vector<std::string> args)
 {
 	try {
-		int err =  initData()
-		           || processLog()
-		           || printReport();
+		int err =  initData(args.at(0))
+		           || processLog(args.at(1))
+		           || printReport(args.at(2));
 		return err;
 	}
 	catch (std::exception& e) {
@@ -199,34 +218,7 @@ int IpSummary::run()
 		log_fatal << "Unknown exception";
 	}
 	return -1;
-
 }
-
-
-int IpSummary::argsParser(int argc, const char * argv[])
-{
-	if (argc > 1 && argc < 5) {
-		int k = 1;
-		for ( ; k < argc; ++k) {
-			args.emplace_back(argv[k]);
-		}
-		for ( ; k < 4; ++k) {
-			args.emplace_back("-");
-		}
-	} else {
-		cout << "Usage: " << argv[0] << " <input_1> <input_2> <output>" << endl;
-		cout <<
-		     "Parameters are file names or \"-\" for standart input or output,"
-		     "  last two may be omitted.\n"
-		     "  input_1: Customers database\n"
-		     "  input_2: IP log\n"
-		     "  output:  Traffic summary by customer ID\n"
-		     << endl;
-		return -1;
-	}
-	return 0;
-}
-
 
 
 #ifdef UT_CATCH
@@ -235,13 +227,8 @@ int IpSummary::argsParser(int argc, const char * argv[])
 
 TEST_CASE( "Trie.lookup", "[Trie]")
 {
-	const char* args[] = {
-			"foo",
-		"test/data/c5.txt",
-		"test/data/iplog.dat"
-	};
-    IpSummary ipr(3, args);
-    int rc = ipr.initData();
+    IpSummary ipr;
+    int rc = ipr.initData("test/data/c5.txt");
     if (rc) {
     	log_error << "Initialization error";
     	exit(1);
