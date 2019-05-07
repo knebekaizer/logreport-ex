@@ -21,7 +21,7 @@
 using namespace std;
 
 ostream& operator<<(ostream& os, const RegElem& x) {
-	return os << x.id << "\t" << x.data->data();
+	return os << x.id << " " << x.data->data();
 }
 
 
@@ -68,13 +68,11 @@ int IpSummary::load(istream& is)
 			auto elem = registry.emplace(id).first;
 			if (netw.find(':') != string::npos) {
 				// ipv6
-				auto node = trie_v6.insert(IPv6(netw), elem->data.get());
+				auto node __attribute__((unused))= trie_v6.insert(IPv6(netw), elem->data.get());
 				assert(node->ip == IPv6(netw));
-				node = 0; // prevent "unused var" compiler warning
 			} else {
-				auto node = trie.insert(IP(netw), elem->data.get());
+				auto node __attribute__((unused))= trie.insert(IP(netw), elem->data.get());
 				assert(node->ip == IP(netw));
-				node = 0; // prevent "unused var" compiler warning
 			}
 		}
 		catch (std::exception& e) {
@@ -141,7 +139,7 @@ int IpSummary::report(ostream& os) const
 	}
 
 	if (unknown.data()) {
-		os << "Unknown" << "\t" << unknown.data() << endl;
+		os << "Unknown" << " " << unknown.data() << endl;
 		sumCheck_accum2(unknown.data());
 	}
 	sumCheck_validate();
@@ -206,6 +204,7 @@ int IpSummary::printReport(const string file)
 int IpSummary::run(std::vector<std::string> args)
 {
 	try {
+		log_info << "arguments:\n" << args;
 		int err =  initData(args.at(0))
 		           || processLog(args.at(1))
 		           || printReport(args.at(2));
