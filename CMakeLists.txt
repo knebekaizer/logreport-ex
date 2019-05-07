@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.10)
 project(iplog_test)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -11,8 +11,6 @@ set(SOURCE_FILES
         main.cpp
         subnets.cpp
         trie.cpp
-    #    net/radix.c
-    #    cust_db.cpp cust_db.h report.cpp report.h subnets.cpp subnets.h
         IpSummary.cpp IpSummary.h)
 
 add_executable(iplog ${SOURCE_FILES} IpSummary.cpp IpSummary.h)
