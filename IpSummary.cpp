@@ -21,7 +21,7 @@
 using namespace std;
 
 ostream& operator<<(ostream& os, const RegElem& x) {
-	return os << x.id << "\t" << x.data->data();
+	return os << x.id << " " << x.data->data();
 }
 
 
@@ -139,7 +139,7 @@ int IpSummary::report(ostream& os) const
 	}
 
 	if (unknown.data()) {
-		os << "Unknown" << "\t" << unknown.data() << endl;
+		os << "Unknown" << " " << unknown.data() << endl;
 		sumCheck_accum2(unknown.data());
 	}
 	sumCheck_validate();
@@ -204,6 +204,7 @@ int IpSummary::printReport(const string file)
 int IpSummary::run(std::vector<std::string> args)
 {
 	try {
+		log_info << "arguments:\n" << args;
 		int err =  initData(args.at(0))
 		           || processLog(args.at(1))
 		           || printReport(args.at(2));
