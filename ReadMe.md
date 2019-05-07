@@ -11,8 +11,10 @@ However, the example contains lower case letters as well as space and dash.
     * Customer ID is case-insensitive
     * Extra spaces are ignored
 
+
 Build
 -----
+
 cmake -B _build .
 cd _build/
 make iplog
@@ -22,6 +24,7 @@ cd ../test/
 
 Testing
 -------
+
 There is a number of unit tests as well as built-in selftest.
 
     make iplog_ut
@@ -40,4 +43,15 @@ This test is wrapped with test_all.sh script:
 ./test/test_all.sh 1000 10000
 Parameters are: size of customer file and size of ip log. 
 
-Directory test/data additionally contains more intermediate files (test data).
+
+Test data generators
+--------------------
+
+cd test
+mkdir -p data
+CUSTOMERS_SIZE=100000
+LOG_SIZE=1000000
+generators/gen_customers.py $CUSTOMERS_SIZE > data/customers.txt
+generators/gen_log.py $LOG_SIZE > data/log.txt
+
+See test/test_all.sh as an example.
