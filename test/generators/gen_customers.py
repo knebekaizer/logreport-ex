@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import random, sys
+import random, sys, string
 
 from random import getrandbits, randrange
 
@@ -8,7 +8,7 @@ import ipaddress
 from ipaddress import IPv4Address, IPv6Network, IPv6Address, ip_network
 
 
-N_CUSTOMERS = 5    # 100000
+N_CUSTOMERS = 100    # 100000
 
 if len(sys.argv) > 1:
     N_CUSTOMERS = int(sys.argv[1])
@@ -26,14 +26,21 @@ subnets6 = set()
 
 #random.seed(1)   # Make the test repeatable
 
+strict = True # Use strict Ids
+
 # Create set then convert to list, to have a sequence with no dups
 for k in range(N_CUSTOMERS):
     n = randrange(1, 3)
-    w = "-".join([random.choice(words) for i in range(n)])
-    if n == 1:
-        w = w + "." + random.choice(["com", "info", "org", "tv"])
-    while n > 1 and w in customers_set:
-        w = w + "_" + str(randrange(0, 65536))
+    if not strict:
+        w = "-".join([random.choice(words) for i in range(n)])
+        if n == 1:
+            w = w + "." + random.choice(["com", "info", "org", "tv"])
+        while n > 1 and w in customers_set:
+            w = w + "_" + str(randrange(0, 65536))
+    else:
+        w = "".join([random.choice(words) for i in range(n)]).upper()
+        while n > 1 and w in customers_set:
+            w = w + ''.join([random.choice(string.ascii_uppercase) for n in range(6)])
     customers_set.add(w)
 
 customers = sorted(list(customers_set))
@@ -72,7 +79,7 @@ def rand_network():
 for k in range(N_SUBNETS):
     c = random.choice(customers)
     ip = rand_network()
-    print("%s %s" % (c, ip))
+    print("%s %s" % (ip, c))
 
 sys.exit(0)
 

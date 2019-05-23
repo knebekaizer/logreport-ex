@@ -30,7 +30,7 @@ def rand_v6():
 def rand_u64():
     while True:
         i = int(random.lognormvariate(20, 10))
-        if i < 2**64: return i
+        if i > 0 and i < 2**64: return i
 
 for k in range(LOG_SIZE):
     if randrange(2):

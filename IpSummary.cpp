@@ -63,8 +63,12 @@ int IpSummary::load(istream& is)
 	trie_v6.root.data = &unknown;
 
 	// @todo use getline to validate input format
-	while (is >> id >> netw) {
+	while (is >> netw >> id) {
 		try {
+			if (netw == "ERROR:") {
+				// special case: handle a sed filter error which is sent from subshell
+				throw std::invalid_argument("");
+			}
 			auto elem = registry.emplace(id).first;
 			if (netw.find(':') != string::npos) {
 				// ipv6
@@ -76,7 +80,7 @@ int IpSummary::load(istream& is)
 			}
 		}
 		catch (std::exception& e) {
-			log_error << "Bad format: line " << registry.size() + 1 << " " << e.what();
+			log_error << "Error on loading customers data: Bad format at line " << registry.size() + 1 << " " << e.what();
 			is.setstate(std::ios_base::badbit);
 			//    break;
 		}
@@ -107,7 +111,7 @@ int IpSummary::processData(istream& is)
 	uint64_t bytes;
 	uint64_t line = 1;
 	while (is >> ip >> bytes) {
-		if (ip.find(':') != string::npos) {
+;		if (ip.find(':') != string::npos) {
 			auto p = trie_v6.lookup(IPv6(ip));
 			require(p->data) << " with *p = " << *p;
 			p->data->incr(bytes);
@@ -121,7 +125,7 @@ int IpSummary::processData(istream& is)
 		++line;
 	}
 	if (!is.eof()) {
-		log_error << "Bad format: line " << line;
+		log_error << "Error on loading ip log: Bad format at line " << line;
 		throw std::runtime_error("Bad format");
 		return 1;
 	}
@@ -139,7 +143,7 @@ int IpSummary::report(ostream& os) const
 	}
 
 	if (unknown.data()) {
-		os << "Unknown" << " " << unknown.data() << endl;
+		os << "UNKNOWN" << " " << unknown.data() << endl;
 		sumCheck_accum2(unknown.data());
 	}
 	sumCheck_validate();
@@ -157,7 +161,9 @@ int IpSummary::initData(const string file)
 	} else {
 		ifstream is(file);
 		if (!is) {
-			throw std::runtime_error("Open error: " + file);
+			log_error << "Open error: " << file;
+			return -1;
+			// throw std::runtime_error("Open error: " + file);
 		}
 		err = load(is);
 	}
@@ -229,9 +235,9 @@ TEST_CASE( "Trie.lookup", "[Trie]")
     IpSummary ipr;
     int rc = ipr.initData("test/data/c5.txt");
     if (rc) {
-    	log_error << "Initialization error";
-    	exit(1);
-    }
+        log_warn << "Initialization error, test is skipped ";
+	    return;
+	}
 
 	vector<pair<IP,IP>> data = {
 			{IP("239.254.94.1"), IP("239.254.94.0/23")},

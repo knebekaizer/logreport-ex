@@ -7,11 +7,11 @@ echo "LOG_SIZE = $LOG_SIZE"
 
 echo "Generate customer DB..."
 generators/gen_customers.py $CUSTOMERS_SIZE > data/cust_db.txt
-echo "Generated `wc -l data/cust_db.txt` lines"
+echo "Generated `wc -l <data/cust_db.txt` lines"
 
 echo "Generate IP log..."
 generators/gen_log.py $LOG_SIZE > data/iplog.txt
-echo "Generated `wc -l data/iplog.txt` lines"
+echo "Generated `wc -l <data/iplog.txt` lines"
 
 echo "Run iplog..."
 ../_build/iplog data/cust_db.txt data/iplog.txt > data/report.txt
