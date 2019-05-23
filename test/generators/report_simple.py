@@ -9,7 +9,7 @@ from ipaddress import IPv4Address, IPv6Address, ip_network
 registry = []
 
 for line in open(sys.argv[1]):
-    name, addr = line.split()
+    addr, name = line.split()
     registry.append( (name, ip_network(addr)) )
 
 #print(registry)
